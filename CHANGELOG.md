@@ -4,6 +4,35 @@ All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/); this project is pre-1.0, so minor
 versions may still include breaking changes.
 
+## [0.2.1]
+
+### Added
+
+- Production deployment package: multi-stage `backend/Dockerfile` (Python
+  builder → slim runtime, non-root user, `alembic upgrade head` on every
+  start via `docker-entrypoint.sh`) and `frontend/Dockerfile` (Node build →
+  nginx runtime, SPA fallback, gzip, reverse proxy to the backend so the
+  browser never needs the API's hostname), `docker-compose.prod.yml`, and a
+  "Production Deployment" section in README.md. Verified end-to-end (build,
+  migrate, seed, serve, API proxy, auth) against a throwaway stack before
+  being committed.
+- Version control: this project's git history starts here (see
+  `git log` — no prior history existed). Tagged `v0.2.0` / `v0.2.1`.
+
+### Fixed
+
+- `CORS_ALLOWED_ORIGINS` could never actually be overridden via environment
+  variable — pydantic-settings tries to JSON-decode a `list[str]` field's env
+  value *before* the custom comma-splitting validator runs, so setting the
+  variable to anything (e.g. the exact value `docker-compose.dev.yml` sets)
+  crashed the app at startup with `SettingsError`. This went unnoticed all
+  session because the one long-lived dev container that appeared to work
+  pre-dated the variable being added to Compose, so it was only ever running
+  on the Python-literal default, never actually exercising the env-var path.
+  Fixed with pydantic-settings' `NoDecode` annotation. Found while smoke-
+  testing the new production Docker image against a real environment
+  variable for the first time.
+
 ## [0.2.0]
 
 ### Added

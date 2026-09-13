@@ -132,6 +132,59 @@ npm run lint
 npm run build
 ```
 
+## Production Deployment
+
+`docker-compose.prod.yml` builds and runs the deployable images (multi-stage
+`backend/Dockerfile` and `frontend/Dockerfile`) instead of the dev images —
+no bind-mounted source, no `--reload`, no Adminer. Dependency-Track is treated
+as an already-running external service (point `DEPENDENCY_TRACK_BASE_URL` /
+`DEPENDENCY_TRACK_API_KEY` at it); it is not bundled here.
+
+1. Create a `.env` next to `docker-compose.prod.yml` with at least:
+
+   ```bash
+   POSTGRES_PASSWORD=<strong random password>
+   SECRET_KEY=<long random string — JWT signing key>
+   CORS_ALLOWED_ORIGINS=https://your-dashboard-hostname
+   ```
+
+   See `backend/.env.example` for every variable and its default (SBOM
+   sync/stale-check/waiver-expiry intervals, the scheduler toggle, etc).
+   `VITE_API_BASE_URL` and `FRONTEND_PORT` are also settable but default to
+   `/api/v1` (relative — routed by the frontend's own nginx reverse proxy to
+   the `backend` service, so the browser never needs to know the API's
+   hostname) and `80` respectively.
+
+2. Build and start:
+
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d --build
+   ```
+
+   The backend image's entrypoint runs `alembic upgrade head` on every start
+   before serving traffic — a fresh deployment or a version upgrade both just
+   work. Both `backend` and `frontend` publish a Docker `HEALTHCHECK`
+   (`/health`, reachable through the frontend too at `/health`, for a load
+   balancer that only has a route to the frontend).
+
+3. Seed the initial Admin/AppSec/etc. accounts and the default Severity/SLA
+   policy (see Section 4 and Section 12 of Requirement.md):
+
+   ```bash
+   docker compose -f docker-compose.prod.yml exec backend python -m app.seed
+   ```
+
+   Change every seeded password immediately in a real deployment — `app.seed`
+   is meant to bootstrap access, not to be the permanent credential set.
+
+4. Pentest report uploads (FR-6.5.4) persist in the `pentest_reports` named
+   volume across container replacement; back it up like any other stateful
+   volume. `postgres_data` is the other one that matters.
+
+Upgrading: pull/rebuild the new images and `docker compose -f
+docker-compose.prod.yml up -d --build` again — the entrypoint's migration
+step handles schema changes; nothing else needs a manual step.
+
 ## Repository Layout
 
 ```

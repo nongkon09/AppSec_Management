@@ -1,7 +1,8 @@
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -20,7 +21,15 @@ class Settings(BaseSettings):
 
     # Origins allowed to call the API from a browser. The default covers the local dev
     # frontend; real deployments set CORS_ALLOWED_ORIGINS to their dashboard hostname.
-    cors_allowed_origins: list[str] = [
+    #
+    # `NoDecode` is required: pydantic-settings treats `list[str]` as a "complex" type
+    # and, for an env-sourced value, tries to `json.loads()` it *before* any validator
+    # runs — a plain comma-separated string ("a,b") is not valid JSON, so without this
+    # it raises `SettingsError` at Settings() construction time whenever the variable
+    # is actually set (verified: this broke unnoticed because the one long-running dev
+    # container that appeared to work pre-dates this env var being added to Compose,
+    # so it was only ever exercising the Python-literal default, never the env path).
+    cors_allowed_origins: Annotated[list[str], NoDecode] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]

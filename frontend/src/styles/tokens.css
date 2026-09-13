@@ -1,0 +1,206 @@
+/* Design tokens (Requirement.md UXR-1: consistent, accessible visual language).
+ *
+ * "Clean & Minimal" direction (redesign approved via the AppSec Platform Redesign canvas):
+ * IBM Plex Sans/Mono, a refined oklch palette, and a left-sidebar navigation shell in
+ * AppLayout.tsx. Variable NAMES are unchanged from the previous palette on purpose — every
+ * component already references these tokens, so the redesign is a values-only swap here;
+ * only AppLayout's markup/CSS classes changed shape (top nav -> sidebar).
+ *
+ * Every colour, spacing step and type size used anywhere in the app is defined here —
+ * screens must not hardcode their own (UXR-1). Light and dark are both first-class:
+ * AppSec works mainly in dark mode, so each palette is specified explicitly rather than
+ * derived by filtering the other (UXR-2 requires contrast to hold in both).
+ *
+ * Severity and SLA chips pair a tinted background with a foreground checked at >= 4.5:1
+ * and a >= 3:1 border, and are always rendered with an icon + text label so colour is
+ * never the only carrier of meaning (UXR-2, WCAG 1.4.1).
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces & text */
+  --color-bg: oklch(0.98 0.003 262);
+  --color-surface: oklch(1 0 0);
+  --color-surface-raised: oklch(1 0 0);
+  --color-surface-muted: oklch(0.975 0.004 262);
+  --color-border: oklch(0.93 0.005 262);
+  --color-border-strong: oklch(0.82 0.008 262);
+  --color-text: oklch(0.23 0.012 262);
+  --color-text-muted: oklch(0.47 0.014 262);
+  --color-text-inverse: oklch(0.985 0.01 264);
+
+  /* Interactive */
+  --color-primary: oklch(0.52 0.155 264);
+  --color-primary-hover: oklch(0.44 0.165 264);
+  --color-primary-subtle: oklch(0.93 0.028 264);
+  --color-focus-ring: oklch(0.52 0.155 264);
+
+  /* Feedback */
+  --color-danger: oklch(0.44 0.175 25);
+  --color-warning: oklch(0.46 0.15 55);
+  --color-success: oklch(0.44 0.13 152);
+
+  /* Severity tiers (FR-4.4) — bg / fg / border per tier */
+  --sev-critical-bg: oklch(0.95 0.035 25);
+  --sev-critical-fg: oklch(0.44 0.175 25);
+  --sev-critical-border: oklch(0.76 0.12 25);
+  --sev-high-bg: oklch(0.95 0.032 55);
+  --sev-high-fg: oklch(0.46 0.15 55);
+  --sev-high-border: oklch(0.78 0.11 55);
+  --sev-medium-bg: oklch(0.95 0.03 92);
+  --sev-medium-fg: oklch(0.46 0.13 92);
+  --sev-medium-border: oklch(0.8 0.1 92);
+  --sev-low-bg: oklch(0.945 0.006 262);
+  --sev-low-fg: oklch(0.46 0.02 262);
+  --sev-low-border: oklch(0.8 0.01 262);
+
+  /* SLA status (FR-5.4) */
+  --sla-overdue-bg: oklch(0.95 0.035 25);
+  --sla-overdue-fg: oklch(0.44 0.175 25);
+  --sla-overdue-border: oklch(0.76 0.12 25);
+  --sla-within-bg: oklch(0.945 0.032 152);
+  --sla-within-fg: oklch(0.44 0.13 152);
+  --sla-within-border: oklch(0.76 0.11 152);
+  --sla-none-bg: oklch(0.95 0.006 262);
+  --sla-none-fg: oklch(0.47 0.014 262);
+  --sla-none-border: oklch(0.82 0.008 262);
+
+  /* Heatmap ramp, lightest → densest (UXR-3; every cell also prints its number) */
+  --heat-0: oklch(0.95 0.006 262);
+  --heat-1: oklch(0.95 0.03 92);
+  --heat-2: oklch(0.95 0.032 55);
+  --heat-3: oklch(0.95 0.035 25);
+  --heat-4: oklch(0.82 0.1 25);
+
+  /* Spacing scale — 4/8px steps only (UXR-1) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Typography — IBM Plex pairing: a clean, technical sans with a matching mono for
+   * CVSS/EPSS/SLA figures, so numbers line up and compare at a glance (UXR-1). */
+  --font-sans: "IBM Plex Sans", -apple-system, "Segoe UI", "Noto Sans Thai", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+
+  /* Radius / elevation */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px oklch(0 0 0 / 0.06);
+  --shadow-md: 0 12px 32px oklch(0 0 0 / 0.12);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: oklch(0.163 0.008 262);
+  --color-surface: oklch(0.196 0.01 262);
+  --color-surface-raised: oklch(0.226 0.011 262);
+  --color-surface-muted: oklch(0.226 0.011 262);
+  --color-border: oklch(0.27 0.012 262);
+  --color-border-strong: oklch(0.32 0.014 262);
+  --color-text: oklch(0.94 0.006 262);
+  --color-text-muted: oklch(0.69 0.012 262);
+  --color-text-inverse: oklch(0.163 0.03 264);
+
+  --color-primary: oklch(0.72 0.135 264);
+  --color-primary-hover: oklch(0.8 0.13 264);
+  --color-primary-subtle: oklch(0.3 0.055 264);
+  --color-focus-ring: oklch(0.72 0.135 264);
+
+  --color-danger: oklch(0.76 0.15 25);
+  --color-warning: oklch(0.79 0.135 55);
+  --color-success: oklch(0.77 0.135 152);
+
+  --sev-critical-bg: oklch(0.27 0.055 25);
+  --sev-critical-fg: oklch(0.76 0.15 25);
+  --sev-critical-border: oklch(0.43 0.13 25);
+  --sev-high-bg: oklch(0.27 0.05 55);
+  --sev-high-fg: oklch(0.79 0.135 55);
+  --sev-high-border: oklch(0.47 0.115 55);
+  --sev-medium-bg: oklch(0.27 0.045 92);
+  --sev-medium-fg: oklch(0.81 0.125 92);
+  --sev-medium-border: oklch(0.49 0.105 92);
+  --sev-low-bg: oklch(0.25 0.012 262);
+  --sev-low-fg: oklch(0.74 0.03 262);
+  --sev-low-border: oklch(0.42 0.02 262);
+
+  --sla-overdue-bg: oklch(0.27 0.055 25);
+  --sla-overdue-fg: oklch(0.76 0.15 25);
+  --sla-overdue-border: oklch(0.43 0.13 25);
+  --sla-within-bg: oklch(0.26 0.05 152);
+  --sla-within-fg: oklch(0.77 0.135 152);
+  --sla-within-border: oklch(0.45 0.115 152);
+  --sla-none-bg: oklch(0.226 0.011 262);
+  --sla-none-fg: oklch(0.69 0.012 262);
+  --sla-none-border: oklch(0.32 0.014 262);
+
+  --heat-0: oklch(0.226 0.011 262);
+  --heat-1: oklch(0.27 0.045 92);
+  --heat-2: oklch(0.27 0.05 55);
+  --heat-3: oklch(0.27 0.055 25);
+  --heat-4: oklch(0.43 0.13 25);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.5), 0 8px 24px oklch(0 0 0 / 0.28);
+  --shadow-md: 0 12px 32px oklch(0 0 0 / 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+}
+
+/* Underline is left at the browser default (not `text-decoration: none`): most links
+ * here sit inline in plain text (KPI card meta, breadcrumbs, table cells) with no other
+ * visual marker, so removing the underline would leave color as their only indicator
+ * (WCAG 1.4.1). Only self-contained nav/button-style links override it locally. */
+a {
+  color: var(--color-primary);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* UXR-9: a clearly visible focus ring on every interactive control, modals included. */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* UXR-3: auto-refreshing widgets must honour reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

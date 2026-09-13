@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Requirement Specification: Application Security (AppSec) Management Platform</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --border-color: #d0d7de;
+    --heading-color: #1a2233;
+    --accent-color: #0b5fff;
+    --bg-code: #f6f8fa;
+    --bg-table-head: #eef2f7;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #f2f4f7;
+  }
+  body {
+    font-family: "Segoe UI", "Leelawadee UI", "Noto Sans Thai", Tahoma, Arial, sans-serif;
+    color: #1f2937;
+    line-height: 1.7;
+  }
+  #toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #1a2233;
+    color: #fff;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+  #toolbar .title { font-weight: 600; }
+  #toolbar button {
+    background: var(--accent-color);
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  #toolbar button:hover { background: #0947c9; }
+  .page {
+    max-width: 980px;
+    margin: 24px auto 80px;
+    background: #fff;
+    padding: 48px 64px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 {
+    color: var(--heading-color);
+    border-bottom: 3px solid var(--accent-color);
+    padding-bottom: 12px;
+    font-size: 26px;
+  }
+  h2 {
+    color: var(--heading-color);
+    margin-top: 42px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+    font-size: 21px;
+  }
+  h3 {
+    color: var(--heading-color);
+    margin-top: 28px;
+    font-size: 17px;
+  }
+  h4 { color: var(--heading-color); font-size: 15px; }
+  p, li { font-size: 15px; }
+  hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 32px 0;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--bg-table-head);
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: #fafbfc; }
+  code {
+    background: var(--bg-code);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+  }
+  pre {
+    background: var(--bg-code);
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+  }
+  pre code { background: none; padding: 0; }
+  blockquote {
+    border-left: 4px solid var(--accent-color);
+    margin: 16px 0;
+    padding: 6px 16px;
+    background: #f0f6ff;
+    color: #33415c;
+  }
+  .mermaid {
+    text-align: center;
+    margin: 24px 0;
+    background: #fff;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+  }
+  a { color: var(--accent-color); }
+  ::selection { background: #cfe2ff; }
+  @media print {
+    #toolbar { display: none; }
+    .page { box-shadow: none; margin: 0; padding: 0 8mm; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="title">📄 AppSec Management Platform — Requirement Specification (Draft v0.1)</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="page">
+  <div id="content">Loading...</div>
+</div>
+
+<textarea id="md-source" style="display:none">
+# Requirement Specification: Application Security (AppSec) Management Platform
+
+## 0. Document Control
+
+| หัวข้อ | รายละเอียด |
+| --- | --- |
+| ชื่อระบบ | AppSec Management Platform (ชื่อชั่วคราว) |
+| Sponsor / Owner | Application Security (AppSec) Team |
+| Sector | Enterprise (ใช้ได้ทุกอุตสาหกรรม) |
+| Version | 0.1 (Draft) |
+| วันที่จัดทำ | 13 September 2026 |
+| ประเภทเอกสาร | Business Requirement + Functional Requirement (BRD/FRS ผสม) เพื่อใช้พัฒนาระบบ In-house |
+
+---
+
+## 1. Background & Business Objective
+
+องค์กรมี Application จำนวนมากทั้งที่ **พัฒนาเอง (In-house)**, **จัดซื้อจาก Vendor (COTS)**, รวมถึง **Mobile Application** และ **API/Microservices** โดยแต่ละ Application มีการใช้งาน Open Source Library ประกอบเป็นจำนวนมาก ปัจจุบันองค์กรยังไม่มีศูนย์กลางที่บอกได้ว่า:
+
+- องค์กรมี Application อะไรบ้าง แต่ละตัวใครเป็นเจ้าของ (Owner)
+- แต่ละ Application/Version ที่รันอยู่บน Production ใช้ Library อะไรบ้าง (SBOM)
+- ผ่านการ Scan (SBOM/SCA, SAST/Source Code Scan, Pentest) ล่าสุดเมื่อใด และผลเป็นอย่างไร
+- มีช่องโหว่ (Vulnerability) ค้าง (Backlog) อยู่เท่าไหร่ ระดับความรุนแรงใดบ้าง และอยู่ภายใต้ SLA หรือไม่
+- Application ผ่านเกณฑ์ความปลอดภัยตามที่ AppSec กำหนดก่อน Go-Live หรือไม่
+
+**วัตถุประสงค์หลักของระบบ**
+
+1. เป็น **Single Source of Truth** ของ Application Inventory และสถานะความมั่นคงปลอดภัยทั้งองค์กร
+2. รองรับ **Automated SBOM Ingestion** จาก CI/CD Pipeline แบบ Zero-Touch (ไม่ต้องส่งไฟล์ Manual)
+3. ทำ **Continuous Vulnerability Monitoring** ต่อ Component/Library ตลอดเวลา ไม่ใช่แค่ตอน Build/Deploy
+4. เป็น **Go-Live Security Gate** ให้ AppSec ตรวจสอบครบก่อนอนุมัติปล่อยระบบขึ้น Production
+5. เชื่อมต่อกับระบบ ITSM/Ticketing ภายนอก (เช่น Jira, ManageEngine ServiceDesk Plus, ServiceNow) แบบ **Closed-Loop Automation** เพื่อลดภาระ Manual ของทั้ง Dev และ Security
+6. รองรับข้อกำหนดด้าน Compliance ที่องค์กรต้องปฏิบัติ (เช่น PCI-DSS, ISO/IEC 27001, NIST SSDF, OWASP SAMM และแนวปฏิบัติของหน่วยงานกำกับที่เกี่ยวข้องกับ IT Risk/Cyber Resilience)
+
+---
+
+## 2. Scope
+
+### 2.1 In Scope
+
+| ประเภท Application | ครอบคลุม |
+| --- | --- |
+| In-house Developed | ✅ |
+| COTS / Vendor Software | ✅ |
+| Mobile Application (iOS/Android) | ✅ |
+| API / Microservices | ✅ |
+
+ประเภทการตรวจสอบความมั่นคงปลอดภัยที่ระบบต้องบันทึกและติดตามผล:
+
+- **SBOM / SCA Scan** (Software Composition Analysis) — บังคับทุก Application
+- **Source Code Scan (SAST)** — บังคับทุก Application
+- **Penetration Test (Pentest)** — บังคับตามเงื่อนไขความเสี่ยง (เช่น Critical, Internet-facing, มีข้อมูลลูกค้า/การเงิน)
+- **Dynamic/Container/Infra scan** — เก็บผลลัพธ์ได้ถ้ามี (Phase ถัดไป ไม่ใช่ Mandatory ใน Phase แรก)
+
+### 2.2 Out of Scope (Phase แรก)
+
+- การเป็นเครื่องมือ Scan เอง (ระบบนี้เป็น **Central Aggregation & Orchestration Platform** ไม่ใช่ Scanner โดยตรง จะเชื่อมต่อ/รับผลจากเครื่องมือ Scan ภายนอก เช่น OWASP Dependency-Track, SAST tools, Pentest reports)
+- Runtime protection (WAF/RASP) — เก็บเป็นข้อมูล Compensating Control อ้างอิงเท่านั้น
+
+---
+
+## 3. Stakeholders & RACI
+
+| บทบาท | หน้าที่หลัก | Deliverables / สิ่งที่ต้องทำในระบบ |
+| --- | --- | --- |
+| **AppSec / Security Team** | กำหนดนโยบาย, ควบคุมความเสี่ยง, เป็นผู้ใช้หลักของ Dashboard | กำหนด SBOM format/Severity Policy, มอนิเตอร์ CVE/KEV/EPSS ใหม่, Triage ช่องโหว่, ติดตาม SLA, อนุมัติ Go-Live Gate, อนุมัติ Waiver/VEX |
+| **DevOps / Platform Team** | ฝัง Automation ลง Pipeline, ดูแล Platform | Shared Pipeline Template สำหรับ Gen/Push SBOM, ดูแล Integration กับ Central Platform, System Health, สิทธิ์การเข้าถึง |
+| **Development Team / Tech Lead** | จัดการโค้ดและ Dependency ของ Application ตนเอง | เข้าดู Application ของทีมตนเองในระบบ, อัปเดต/Patch Library, ใส่แผนการดำเนินการ (Remediation Plan), ให้ข้อมูล VEX Context |
+| **Legal / Compliance Team** | ควบคุมความเสี่ยงด้านลิขสิทธิ์ License | กำหนด License Policy (เช่น Deny AGPL-3.0, Allow MIT/Apache-2.0), ตรวจสอบความถูกต้องของสิทธิ์ Open Source |
+| **Product Owner / Management** | บริหารทรัพยากร | จัดสรร Capacity ใน Sprint สำหรับ Security Debt/Patch, ดู Report ระดับผู้บริหาร |
+| **Compliance / Audit** | ตรวจสอบการปฏิบัติตามนโยบาย | เข้าถึงระบบแบบ Read-only, Export รายงาน/Audit Trail |
+
+RACI Matrix แบบย่อ:
+
+| กิจกรรม | AppSec | DevOps | Dev Team | Legal/Compliance | Management |
+| --- | --- | --- | --- | --- | --- |
+| กำหนด Severity/SLA Policy | A/R | C | I | I | I |
+| ผนวก SBOM Generator เข้า Pipeline | C | A/R | C | I | I |
+| แก้ไข/Patch Library | I | I | A/R | I | I |
+| อนุมัติ Go-Live | A | C | R | C | I |
+| อนุมัติ Waiver/Risk Accept | A/R | I | C | C (License) | I |
+| กำหนด License Policy | I | I | I | A/R | I |
+
+---
+
+## 4. Users & Access (RBAC)
+
+| Role | สิทธิ์การเข้าถึง |
+| --- | --- |
+| **Security Team (AppSec)** | Full access: เห็นทุก Application, Dashboard รวมทั้งองค์กร, Monitor ช่องโหว่ใหม่ทั้งหมด, ตั้งค่า Policy/SLA, อนุมัติ Waiver, จัดการ Integration/ITSM Connector |
+| **Development Team / Tech Lead** | เห็นเฉพาะ Application ที่ตนเองเป็นเจ้าของ (scoped by OwnerTeam), ดูรายละเอียดช่องโหว่, กรอก/แก้ไข Remediation Plan, ขอ Waiver/VEX (รออนุมัติ) |
+| **Legal / Compliance** | เห็น License Compliance Module, กำหนด License Policy |
+| **Management / Product Owner** | เห็น Dashboard/Report เชิงสรุป (Read-only), Export รายงาน |
+| **Compliance / Audit** | Read-only ทั้งระบบ + Export + ดู Audit Trail |
+| **System Admin** | จัดการ User/Role, Integration Connector Configuration, System Configuration |
+
+> Note: ต้องรองรับ SSO (SAML/OIDC เชื่อมกับ AD ขององค์กร) และ Role-based Data Scoping ตาม OwnerTeam/Business Unit
+
+---
+
+## 5. Definitions
+
+| คำศัพท์ | ความหมาย |
+| --- | --- |
+| SBOM | Software Bill of Materials รายการ Library/Component ทั้งหมดที่ประกอบเป็น Application |
+| SCA | Software Composition Analysis การวิเคราะห์ Open Source Component |
+| SAST | Static Application Security Testing การสแกน Source Code |
+| CVE / CVSS | ช่องโหว่มาตรฐานสากล และคะแนนความรุนแรง |
+| EPSS | Exploit Prediction Scoring System ความน่าจะเป็นที่จะถูกโจมตีใน 30 วัน |
+| CISA KEV | รายชื่อช่องโหว่ที่มีการโจมตีจริงแล้วในโลกจริง |
+| VEX | Vulnerability Exploitability eXchange การระบุว่าช่องโหว่ส่งผลกระทบจริงหรือไม่ |
+| SLA | Service Level Agreement ระยะเวลาที่ต้องแก้ไขช่องโหว่ตามความรุนแรง |
+| ITSM | IT Service Management เช่น ManageEngine ServiceDesk Plus, ServiceNow |
+| CycloneDX / SPDX | รูปแบบมาตรฐานไฟล์ SBOM |
+
+---
+
+## 6. Functional Requirements
+
+### FR-1: Application Inventory Management
+
+- FR-1.1 ระบบต้องเก็บ Master Data ของ Application ทุกตัว ได้แก่: ชื่อ Application, ประเภท (In-house/COTS/Mobile/API), Owner Team, Tech Lead/Contact, Business Unit, Business Criticality (Critical/High/Medium/Low), Environment (Production/Staging/Dev), Internet-facing (Y/N), Data Classification (มี PII/Financial data หรือไม่)
+- FR-1.2 ต้องรองรับหลาย Version ต่อ Application 1 ตัว พร้อมระบุ Version ใดกำลังใช้งานบน Production
+- FR-1.3 ต้องเชื่อมโยง Application กับ Repository (Git URL), CI/CD Pipeline, และ Jira Project Key / SDP Service Category (Metadata สำหรับ Routing)
+- FR-1.4 รองรับการ Import/Sync Application List จาก CMDB หรือสร้าง/แก้ไขผ่านหน้าจอ UI และผ่าน API
+- FR-1.5 ระบบต้อง Auto-create Application/Project เมื่อได้รับ SBOM จาก Pipeline ของ Application ที่ยังไม่เคยลงทะเบียน (พร้อมแจ้งเตือนให้ AppSec ยืนยัน Ownership ภายหลัง)
+
+### FR-2: Automated SBOM Ingestion
+
+- FR-2.1 ระบบต้องมี API สำหรับรับ SBOM (รองรับ **CycloneDX JSON** เป็นหลัก และ **SPDX** สำหรับกรณี License Compliance) จาก CI/CD Pipeline โดยตรง ไม่ต้องอัปโหลด Manual
+- FR-2.2 Payload การส่ง SBOM ต้องรองรับ Metadata อย่างน้อย: `projectName`, `projectVersion` (Commit SHA/Semver), `OwnerTeam`, `Environment`, `RepoURL`, `jira_project_key`, `sdp_category`, `owner_email`
+- FR-2.3 ระบบต้องบันทึก ประวัติการ Ingest ทุกครั้ง (Timestamp, Pipeline ID, ผู้/ระบบที่ส่ง) เพื่อให้ตอบคำถามได้ว่า "Scan ล่าสุดเมื่อไหร่"
+- FR-2.4 หาก Application ไม่มีการส่ง SBOM ใหม่เกินระยะเวลาที่กำหนด (Configurable, default 90 วัน) ระบบต้อง Flag เป็น "Stale/ไม่ Sync" และแจ้งเตือน Owner
+- FR-2.5 รองรับการเชื่อมต่อกับ **OWASP Dependency-Track** เป็น Central SBOM Platform หลักในช่วงแรก (Ingestion ผ่าน Dependency-Track API) และออกแบบ Integration Layer ให้ Extend ไปยัง Enterprise SCA อื่น (Snyk/Mend/Sonatype) ได้ในอนาคตโดยไม่แก้ Core
+- FR-2.6 **COTS/Vendor Application SBOM Intake:** สำหรับ Application ประเภท COTS/Vendor ที่ไม่มี CI/CD Pipeline ให้ระบบ Ingest อัตโนมัติ ต้องรองรับ 2 ช่องทางเพิ่มเติม:
+  1. **Vendor ส่ง SBOM มาให้โดยตรง (Manual Upload):** รองรับการอัปโหลดไฟล์ CycloneDX/SPDX ที่ Vendor จัดเตรียมมาเข้าสู่ Application/Version เดียวกับ Automated Flow (ผ่านการตรวจสอบ Format ก่อนรับเข้า)
+  2. **Vendor ส่ง Source Code ให้ทีมภายในสร้าง SBOM เอง:** กรณี Vendor ส่ง Source Code มาให้ (เช่น สำหรับ Audit/Security Review) ระบบต้องรองรับการสร้าง Application/Project ใหม่ และให้ทีมภายใน (AppSec/DevOps) รัน SBOM Generator (Syft/cdxgen) กับ Source Code นั้นแล้ว Ingest เข้าสู่ระบบเสมือนเป็น Pipeline ปกติ
+- FR-2.7 **ยืนยัน: SBOM Ingestion Authentication** — การส่ง SBOM เข้าระบบเป็นการยิงตรงเข้า **OWASP Dependency-Track API** (ตาม FR-2.5) ไม่ใช่ Custom API ที่ Platform นี้พัฒนาเอง ดังนั้น Authentication ใช้กลไกของ Dependency-Track เอง คือ **API Key แบบ Per-Team/Per-Project** (ส่งผ่าน Header `X-Api-Key`) โดยต้อง:
+  1. Provision API Key แยกต่างหากต่อ Application/Pipeline (ห้ามใช้ Key ร่วมกันทั้งองค์กร) เพื่อจำกัดสิทธิ์การเขียนข้อมูลเฉพาะ Project ของตนเอง และสามารถ Audit ย้อนกลับได้ว่า Pipeline ใดเป็นผู้ส่ง SBOM
+  2. เก็บ API Key ไว้ใน Secret Manager/Vault ฝั่ง CI/CD Pipeline เท่านั้น (ตาม NFR Security) ห้าม Hardcode ใน Pipeline Script
+  3. รองรับการหมุนเวียน (Rotate) API Key ตามรอบที่ AppSec/DevOps กำหนด และเพิกถอน (Revoke) ได้ทันทีเมื่อสงสัยว่ารั่วไหล
+  4. Central Platform (ที่ดึงข้อมูล Finding/Component จาก Dependency-Track มาแสดงผลใน Dashboard) ใช้ Service Account/API Key แยกต่างหาก (Read-only scope) ไม่ใช้ Key เดียวกับที่ Pipeline ใช้ Push SBOM
+
+### FR-3: Continuous Vulnerability Monitoring
+
+- FR-3.1 ระบบ (ผ่าน Central Platform) ต้อง Sync ฐานข้อมูลช่องโหว่จากภายนอกอย่างน้อยวันละ 1-2 ครั้ง จาก NVD, GitHub Security Advisory, OSV, CISA KEV, EPSS
+- FR-3.2 ต้องทำ Delta Matching ระหว่างฐานข้อมูลช่องโหว่ใหม่กับ Component Inventory ที่มีอยู่ **โดยไม่ต้องรอ Rebuild/Redeploy ของ Application**
+- FR-3.3 เมื่อพบช่องโหว่ใหม่ที่ Match กับ Component ของ Application ใด ระบบต้องบันทึกเป็น Finding พร้อม CVE ID, CVSS, EPSS, KEV Flag, Affected Component, Affected Application/Version
+
+### FR-4: Risk Scoring, Severity & Smart Noise Reduction
+
+- FR-4.1 ระบบต้องคำนวณ/กำหนด Severity Tier ของแต่ละ Finding โดยใช้เกณฑ์ผสมระหว่าง **CVSS + EPSS + CISA KEV** (ไม่อิงแค่ CVSS อย่างเดียว) ตาม Policy ที่กำหนดได้ (Configurable Rule Engine) เช่น:
+  - `KEV = True` → Critical (ไม่ว่า CVSS เท่าไหร่)
+  - `EPSS >= 0.3 AND CVSS >= 7.0` → Critical/High
+  - อื่น ๆ ตาม CVSS Band ปกติ
+- FR-4.2 ต้องแยกพิจารณา Dependency Scope: `production` vs `development` — ช่องโหว่ใน Dev-only dependency ที่ไม่ถูก Expose ให้ลดระดับความสำคัญ หรือไม่เปิด Ticket อัตโนมัติ (Configurable)
+- FR-4.3 **ยืนยัน (ปรับปรุง): ไม่มีกลไก Global Suppression แยกต่างหากใน FR-4** — การ Suppress ช่องโหว่ข้าม Application (เช่น กรณีมี Compensating Control อย่าง WAF) ให้ใช้ **VEX Global Suppression (FR-8.3) เป็นกลไกเดียว** โดยระบุเป็นหนึ่งใน Justification Reason ของ VEX (เช่น `compensating_control`) ไม่ใช่ Path การอนุมัติแยกต่างหาก เพื่อไม่ให้เกิดความสับสน/ซ้ำซ้อนระหว่าง 2 Workflow — ดูรายละเอียดใน FR-8.3
+- FR-4.4 Severity Tier ที่ใช้: **Critical / High / Medium / Low** โดยเกณฑ์การจัดกลุ่มและจำนวนวัน SLA ของแต่ละ Tier ต้อง **กำหนดเป็น Parameter ที่ Admin ตั้งค่าได้ภายหลัง (ไม่ Hardcode)** ผ่านหน้าจอ Policy Configuration
+- FR-4.5 **ยืนยัน:** Severity Tier คำนวณจาก **CVSS + EPSS + CISA KEV เพียงอย่างเดียว** (ตาม FR-4.1) โดย **ไม่นำ Business Criticality/Internet-facing/Data Classification ของ Application มาถ่วงน้ำหนักเพิ่ม/ลด Severity Tier โดยตรง** (ข้อมูล Business Context ยังคงแสดงประกอบใน Dashboard/Heatmap เพื่อการจัดลำดับความสนใจเชิงบริหารเท่านั้น ไม่กระทบการคำนวณ SLA/Ticket Routing)
+
+### FR-5: SLA & Policy Management
+
+- FR-5.1 ระบบต้องมีหน้าจอ Configuration ให้ AppSec กำหนด/แก้ไข SLA (จำนวนวัน Remediation) แยกตาม Severity Tier ได้เอง (เป็น Parameter, ไม่ Fix ในโค้ด)
+- FR-5.2 ต้องคำนวณ Due Date ของแต่ละ Finding/Ticket อัตโนมัติตาม SLA Policy ที่ Effective ณ เวลาที่พบช่องโหว่
+- FR-5.3 ต้องมี Escalation Rule เมื่อใกล้ถึง/เกิน SLA (แจ้งเตือน Owner, Tech Lead, และ AppSec ตามลำดับที่ Configure ได้)
+- FR-5.4 ต้องเก็บ Backlog View: จำนวนช่องโหว่คงค้างต่อ Application แยกตาม Severity และสถานะ (Within SLA / Overdue)
+
+### FR-6: Go-Live Security Gate
+
+- FR-6.1 ระบบต้องมี Checklist/Workflow สำหรับอนุมัติ Go-Live ของแต่ละ Application/Version ก่อนขึ้น Production โดยตรวจสอบอย่างน้อย:
+  1. ผ่าน **SBOM/SCA Scan** แล้ว และไม่มี Critical/High ที่ยัง Open (หรือมี Waiver อนุมัติแล้ว)
+  2. ผ่าน **Source Code Scan (SAST)** แล้ว และไม่มี Critical/High ที่ยัง Open (หรือมี Waiver อนุมัติแล้ว)
+  3. ผ่าน **Pentest** แล้ว (กรณีเข้าเงื่อนไข: Business Criticality = Critical, Internet-facing = Yes, หรือมีข้อมูล PII/Financial) และไม่มี Finding ระดับ Critical/High ที่ยังไม่ปิด (หรือมี Waiver) — ผลการทดสอบรับเข้าระบบผ่าน **Manual Upload** (อ้างอิง FR-6.5)
+- FR-6.2 ต้องรองรับ **Exception/Waiver Workflow**: ผู้ขอ (Dev/Tech Lead) ยื่นคำขอ พร้อมเหตุผล → AppSec (และ Legal ถ้าเกี่ยวกับ License) พิจารณาอนุมัติ/ปฏิเสธ → บันทึกเป็น Audit Trail พร้อมวันหมดอายุของ Waiver
+  - **เมื่อ Waiver หมดอายุ (Expiry Date ถึงกำหนด)** ระบบต้อง (1) Auto-reopen Finding ที่เกี่ยวข้องกลับเข้า Backlog ทันที พร้อมแจ้งเตือน Owner/Tech Lead และ AppSec ทันที และ (2) Block การ Deploy ครั้งถัดไปของ Application/Version นั้นจนกว่าจะมีการขอ Waiver ใหม่ หรือแก้ไขช่องโหว่ให้เรียบร้อย
+- FR-6.3 ระบบต้องออก **Go-Live Approval Record/Certificate** (Digital, มี Timestamp, ผู้อนุมัติ) เพื่อใช้เป็นหลักฐาน Audit
+- FR-6.4 ต้องบล็อกไม่ให้ Mark เป็น "Approved for Production" หากเช็คลิสต์ยังไม่ครบ และไม่มี Waiver รองรับ
+- FR-6.5 **Pentest Project Management (Manual Upload + Lifecycle Tracking):** เนื่องจาก Pentest ไม่ใช่กระบวนการอัตโนมัติแบบ SBOM/SAST จึงจัดการในรูปแบบ **"Pentest Project"** ที่มีสถานะ (State) ชัดเจน และผูกกับ Application + **Version ที่ทดสอบโดยเฉพาะ** ระบบต้องรองรับ:
+  1. สร้าง Pentest Project ผูกกับ `app_id` และ **`app_version_id`** ที่ระบุชัดเจนว่าเป็นการทดสอบ Version ใด (ไม่ผูกลอยกับ Application เฉย ๆ) เพื่อให้ตอบได้ว่า Production Version ปัจจุบันเคยผ่าน Pentest หรือยัง
+  2. ติดตาม **สถานะ (State)** ของ Pentest Project แบบ Configurable Workflow เช่น `Requested` → `Scoping` → `Testing In Progress` → `Report Draft` → `Report Final / Delivered` → `Remediation Verification` → `Closed / Retest Passed` (รองรับสถานะ `Cancelled/On-hold` ด้วย) — ทุกครั้งที่เปลี่ยนสถานะต้องบันทึก User/Timestamp (Audit Trail)
+  3. แสดงสถานะปัจจุบันของ Pentest Project แต่ละรายการในหน้า Dashboard ของ Security Team (ภาพรวมทุก Project) และหน้า Application Detail ของ Dev Team (เห็นเฉพาะของทีมตนเอง) เพื่อให้รู้ว่า **Pentest อยู่ที่ State ไหนแล้ว**
+  4. อัปโหลดไฟล์รายงานฉบับเต็ม (PDF/DOCX) แนบกับ Pentest Project เมื่อเข้าสถานะ `Report Draft`/`Report Final`
+  5. กรอกข้อมูลสรุปแบบ Structured อย่างน้อย: วันที่ทดสอบ (Test Date), ผู้ทดสอบ/บริษัทที่ทดสอบ, ขอบเขตการทดสอบ (Scope), วันหมดอายุผลทดสอบ (Validity Period เช่น 1 ปี), และรายการ Finding (ชื่อช่องโหว่, Severity, สถานะ Fixed/Open)
+  6. รองรับการผูก Pentest Finding แต่ละรายการเข้ากับ Backlog/SLA เช่นเดียวกับ Finding จาก SBOM/SAST (นับรวมในหน้า Dashboard และ Go-Live Gate) เพื่อให้ติดตามสถานะช่องโหว่จาก Pentest ผ่าน Platform นี้ได้ทั้งหมด ไม่ต้องแยกไปดูใน Report แยกต่างหาก โดยเริ่มนับเข้า Backlog เมื่อ Pentest Project เข้าสถานะ `Report Final / Delivered` เป็นต้นไป
+  7. ต้องมี Role กำหนดสิทธิ์ผู้ที่อัปโหลดผล/เปลี่ยนสถานะได้ (เช่น AppSec หรือ Tech Lead ที่ได้รับมอบหมาย) พร้อม Audit Trail ว่าใครอัปโหลด/แก้ไข/เปลี่ยนสถานะเมื่อใด
+  8. ต้องบันทึกข้อมูล **Engagement Detail** ของการทดสอบแต่ละครั้ง เพื่อใช้ติดตามเชิงบริหารจัดการ (Vendor Management/Budget) ได้แก่:
+     - **ประเภทผู้ทดสอบ:** `Internal` (ทีมภายในองค์กรทำเอง) หรือ `Vendor/Outsource` (จ้างบุคคลภายนอก)
+     - หากเป็น `Vendor/Outsource`: **ชื่อ Vendor/บริษัทผู้รับจ้าง**, **เลขที่สัญญา/PO อ้างอิง (ถ้ามี)**
+     - **ค่าใช้จ่าย (Cost)** พร้อมสกุลเงิน (เช่น THB)
+     - **ระยะเวลาการทดสอบ**: วันที่เริ่มต้น (Start Date) และวันที่สิ้นสุด (End Date)
+  9. ระบบต้องแสดงข้อมูล Engagement (ประเภท, Vendor, ค่าใช้จ่าย, ระยะเวลา) ในหน้า Dashboard/รายงานสรุปได้ เช่น สรุปค่าใช้จ่าย Pentest รายปี, จำนวนครั้งที่ทำ Internal เทียบกับ Vendor, และ Vendor ที่ใช้บ่อยที่สุด — ข้อมูลค่าใช้จ่ายควรจำกัดการมองเห็นเฉพาะ Role ที่เกี่ยวข้อง (เช่น AppSec Manager/Management) ตามความอ่อนไหวของข้อมูล
+  10. **ผู้รับผิดชอบ Remediation Verification (Retest):** กำหนดผู้ทำ Retest ตามประเภทผู้ทดสอบ — หากเป็น `Internal` ให้ทีม Pentest ภายในองค์กรเป็นผู้ Retest เอง; หากเป็น `Vendor/Outsource` ให้ Vendor ที่รับจ้างเป็นผู้ Retest ตามเงื่อนไขสัญญา แต่หากเกินระยะเวลาที่ Vendor ตกลงจะทำ Retest ให้ (Configurable, ตาม Contract) ระบบต้องแจ้งเตือนและอนุญาตให้เปลี่ยนผู้รับผิดชอบเป็นทีม Pentest ภายในทำแทนได้ (บันทึก Audit Trail การเปลี่ยนผู้รับผิดชอบ)
+- FR-6.6 **Application Version History & Remediation Trend:** ระบบต้องแสดงประวัติของแต่ละ Application แยกตาม Version เพื่อให้ AppSec/Dev เห็นแนวโน้มการแก้ไขช่องโหว่ตามช่วงเวลา ได้แก่:
+  1. ต่อ 1 Version ของ Application ต้องสรุปได้ว่า: จำนวน Finding ใหม่ที่พบ (New), จำนวนที่ถูกแก้ไขไปจาก Version ก่อนหน้า (Fixed), และจำนวนที่ยังคงค้าง (Carried Over) — แยกตาม Severity และแหล่งที่มา (SBOM/SAST/Pentest)
+  2. รองรับการเปรียบเทียบ (Diff) ระหว่าง 2 Version ของ Application เดียวกัน ว่ามี Component/Finding ใดเพิ่มเข้ามาหรือถูกแก้ไขไปแล้วบ้าง
+  3. แสดงเป็น Timeline/Trend Chart ต่อ Application เพื่อให้เห็นภาพว่า Version ใด **"แก้เยอะ/แก้น้อย"** (Remediation Velocity) เทียบกันในแต่ละรอบ Release — ใช้ประกอบการประเมิน Dev Team effort และเป็นข้อมูลอ้างอิงในหน้า Go-Live Gate/Dashboard
+- FR-6.7 **ยืนยัน: Business Continuity เมื่อ Platform ไม่พร้อมใช้งาน (Fail-open + Break-glass Approval)** หาก AppSec Management Platform Down หรือไม่สามารถให้บริการตรวจสอบ Checklist อัตโนมัติได้ ระบบ/กระบวนการต้องรองรับแบบ **Fail-open** คือไม่ Block การ Go-Live ทั้งหมด โดยมีเงื่อนไข:
+  1. ให้ AppSec Manager (หรือผู้มีอำนาจที่กำหนดไว้ล่วงหน้าเท่านั้น) สามารถอนุมัติ Go-Live แบบ **Manual Break-glass** นอกระบบชั่วคราวได้ (เช่น ผ่าน Email/เอกสารลงนาม) เพื่อไม่ให้ Business ต้อง Block การ Deploy ทั้งหมดระหว่างระบบ Down
+  2. ต้องบันทึกการอนุมัติ Manual Break-glass นี้เข้าสู่ระบบแบบ **Retroactive Audit Trail** ทันทีที่ระบบกลับมาใช้งานได้ปกติ พร้อม Flag Go-Live Record ว่าเป็น `Break-glass/Manual Override` แยกจาก Approval ปกติ เพื่อให้ AppSec/Compliance ตรวจสอบย้อนหลังได้ว่าเกิดขึ้นกี่ครั้งและเพราะเหตุใด
+  3. จำกัดสิทธิ์ผู้ที่ทำ Break-glass Approval ได้เฉพาะ Role ที่กำหนดไว้ล่วงหน้าเท่านั้น (เช่น AppSec Manager)
+
+### FR-7: ITSM / Ticketing Integration (Generic Connector Framework)
+
+> **หมายเหตุสำคัญ:** ระบบต้องออกแบบเป็น **Integration/Connector Framework แบบ Pluggable** ที่สามารถ "ยิง" สร้าง Ticket ออกไปยังระบบ ITSM ภายนอกได้หลายระบบ (ไม่ผูกกับ Jira/SDP เพียงคู่เดียว) เพื่อให้ Admin เพิ่ม/ตั้งค่า ITSM ปลายทางใหม่ได้ในอนาคตโดยไม่ต้องแก้ Core
+
+- FR-7.1 ระบบต้องรองรับการเชื่อมต่ออย่างน้อย: **Jira (REST API)**, **ManageEngine ServiceDesk Plus (REST API)**, และเผื่อรองรับ ServiceNow/Webhook ทั่วไปในอนาคต ผ่าน Connector Interface มาตรฐานเดียวกัน (เช่น `createTicket`, `updateTicket`, `closeTicket`, `getStatus`)
+- FR-7.2 ต้องมี **Routing Policy Engine** ที่กำหนดได้ว่า Finding ระดับใดจะถูกยิงไปเปิด Ticket ที่ระบบใดบ้าง (Configurable ไม่ Hardcode) ตัวอย่าง Default Policy:
+  - **Critical / Exploited (KEV=True หรือ EPSS สูง + CVSS≥9.0):** เปิด Ticket ทั้งใน ITSM (Governance/SLA เช่น SDP) และ Jira (Execution)
+  - **Medium/Low:** เปิดเฉพาะ Jira Backlog ของทีม Dev
+- FR-7.3 เมื่อสร้าง Ticket ต้องแนบข้อมูลอย่างน้อย: ชื่อ Library/Version ปัจจุบัน, Fixed/Remediation Version, CVE/Link รายละเอียด, Due Date ตาม SLA, Affected Application/Version
+- FR-7.4 ระบบต้องเก็บ Cross-reference ID ระหว่างระบบ (เช่น SDP WorkOrderID ↔ Jira Issue Key ↔ Finding ID ในระบบ) เพื่อ Traceability สองทาง
+- FR-7.5 **Auto-Close (Closed-Loop):** เมื่อ SBOM เวอร์ชันใหม่แสดงว่าช่องโหว่หายไปแล้ว ระบบต้องยิง API ไปปิด/เปลี่ยนสถานะ Ticket ในทุกระบบที่เกี่ยวข้องอัตโนมัติ (Jira → Done, ITSM → Resolved/Closed) พร้อม Comment "Auto-verified by SBOM re-scan"
+- FR-7.6 กรณี VEX/Risk Accept: ระบบต้องปิด Ticket ด้วยสถานะ `Won't Fix / Risk Accepted` ในทุกระบบที่เกี่ยวข้อง และบันทึก Approval Trail (ผ่าน Approval Workflow ของ ITSM ถ้ามี)
+- FR-7.7 ต้องรองรับการ Retry/Error Handling หากยิง API ไปยัง ITSM ปลายทางไม่สำเร็จ (Queue + Retry + Alert ให้ Admin)
+- FR-7.8 การเรียก Ticket ควรทำได้ทั้งแบบ Automatic (ตาม Policy) และแบบ Manual (ผู้ใช้กดสร้าง Ticket เองจากหน้า Finding สำหรับ Edge Case)
+
+### FR-8: VEX & Exception Management
+
+- FR-8.1 รองรับการบันทึกสถานะ VEX ต่อ Finding: `affected`, `not_affected`, `fixed`, `under_investigation` พร้อมเหตุผล (Justification) ตามมาตรฐาน VEX
+- FR-8.2 การ Suppress ด้วย VEX ต้องผ่าน Workflow อนุมัติ (Dev เสนอ → AppSec อนุมัติ) และมี Audit Trail
+- FR-8.3 รองรับ Global Suppression: Apply VEX Decision เดียวกันกับทุก Application ที่ใช้ Library/CVE เดียวกัน — **เป็นกลไกเดียว** สำหรับ Suppress ช่องโหว่ข้าม Application ทั้งหมด (รวมกรณีมี Compensating Control เช่น WAF/Network Control ด้วย โดยระบุเป็นหนึ่งใน Justification Reason เช่น `component_not_present`, `vulnerable_code_not_in_execute_path`, `compensating_control` ฯลฯ ตามมาตรฐาน VEX) — ไม่มีกลไก Global Suppression แยกต่างหากนอกเหนือจากนี้ (ยกเลิกกลไกเดิมใน FR-4.3)
+
+### FR-9: License Compliance
+
+- FR-9.1 ระบบต้องแสดง License ของแต่ละ Component ที่ตรวจพบใน SBOM (จาก SPDX/CycloneDX License field)
+- FR-9.2 Legal/Compliance ต้องกำหนด License Policy ได้ (Allow-list / Deny-list เช่น Deny AGPL-3.0, Allow MIT/Apache-2.0) และระบบต้อง Flag Component ที่ผิด Policy พร้อมแจ้งเตือน
+- FR-9.3 License ที่ผิด Policy จะแสดงเป็น **Warning/แจ้งเตือน Owner เท่านั้น ไม่นับเป็นช่องโหว่ (Finding/Vulnerability)** และ **ไม่ใช้เป็นเงื่อนไข Block การอนุมัติ Go-Live** (ไม่รวมอยู่ใน Checklist ของ FR-6.1) — ใช้เพื่อให้ Legal/Compliance ทราบความเสี่ยงด้านสัญญา/License เท่านั้น
+
+### FR-10: Dashboard & Reporting
+
+- FR-10.1 **Security Team Dashboard**: ภาพรวมทั้งองค์กร — จำนวน Application ทั้งหมด, ช่องโหว่ใหม่ (New Findings) รายวัน/สัปดาห์, Backlog แยก Severity, SLA Compliance %, Application ที่ยัง Stale (ไม่ได้ Scan นาน), Heatmap ความเสี่ยงตาม Business Unit
+- FR-10.2 **Dev Team View**: เห็นเฉพาะ Application ของทีมตนเอง, รายการช่องโหว่ที่ต้องแก้, สถานะ Ticket ที่เชื่อมกับ ITSM, ช่องกรอก/อัปเดต Remediation Plan
+- FR-10.3 **Management Report**: สรุปเชิง KPI (เช่น % Application ผ่าน Go-Live Gate, Mean Time to Remediate, จำนวน Critical คงค้างเกิน SLA) พร้อม Export (PDF/Excel)
+- FR-10.4 **Compliance/Audit View**: Read-only ทั้งหมด + Export + ดู Audit Trail/Approval History ทั้งหมด (Go-Live Approval, Waiver, VEX)
+- FR-10.5 ต้องมี Drill-down จาก Dashboard → Application → Version → Component → Finding → Ticket (Traceability เต็ม Chain)
+- FR-10.6 **Pentest Engagement Report**: สรุปข้อมูลการทำ Pentest ทั้งองค์กร เช่น จำนวนครั้งที่ทำ Internal เทียบ Vendor, รายชื่อ Vendor ที่ใช้บริการและความถี่, ค่าใช้จ่ายรวมต่อปี/ต่อ Application, ระยะเวลาเฉลี่ยในการทดสอบ, และ Finding ที่พบจาก Pentest แยกตามสถานะ Fixed/Open (ข้อมูลค่าใช้จ่ายให้จำกัดสิทธิ์การมองเห็นเฉพาะ Role ที่เกี่ยวข้อง เช่น AppSec Manager/Management ตามหัวข้อ 4)
+- FR-10.7 **Pentest Project Board**: แสดงรายการ Pentest Project ทั้งหมดพร้อม **สถานะ (State) ปัจจุบัน** (Requested/Scoping/Testing In Progress/Report Draft/Report Final/Remediation Verification/Closed) แยกตาม Application/Version ที่ทดสอบ เพื่อให้ AppSec/Management ติดตามได้ว่า Pentest แต่ละงานอยู่ขั้นตอนไหนแล้ว
+- FR-10.8 **Application Version History View**: แสดงรายการ Version ทั้งหมดของ Application เรียงตามเวลา พร้อมจำนวน Finding New/Fixed/Carried Over ต่อ Version (อ้างอิง FR-6.6) เพื่อให้เห็นได้ว่า Version ใดแก้ไขเยอะ/น้อย
+
+### FR-11: Audit Trail & Traceability
+
+- FR-11.1 ทุก Action สำคัญ (Ingest SBOM, สร้าง/ปิด Ticket, อนุมัติ Waiver, เปลี่ยน Policy, อนุมัติ Go-Live) ต้องถูกบันทึก Log แบบ Immutable พร้อม User/System, Timestamp, ค่าก่อน-หลัง
+- FR-11.2 ต้องสามารถ Export Audit Log ตามช่วงเวลา/Application เพื่อรองรับการตรวจสอบจาก Internal Audit/Regulator
+
+---
+
+## 7. Non-Functional Requirements
+
+| หมวด | รายละเอียด |
+| --- | --- |
+| **Security** | ต้องปฏิบัติตาม OWASP ASVS/Top10, เข้ารหัสข้อมูล at-rest และ in-transit (TLS), Secrets/API Key ของ Integration ต้องเก็บใน Secret Manager/Vault ห้าม Hardcode, ตรวจสอบ Webhook ด้วย Signature/HMAC |
+| **Authentication/Authorization** | รองรับ SSO (SAML2/OIDC) เชื่อม Active Directory, RBAC ตามที่ระบุในหัวข้อ 4, Data Scoping ตาม OwnerTeam |
+| **Compliance** | ออกแบบให้สอดคล้อง **PCI-DSS** (สำหรับระบบเกี่ยวข้องกับ Payment), **ISO/IEC 27001**, **NIST SSDF**, **OWASP SAMM** และแนวปฏิบัติ/ประกาศของหน่วยงานกำกับด้าน IT Risk & Cyber Resilience ที่องค์กรต้องปฏิบัติ |
+| **Availability** | ระบบ Monitoring/Ingestion ต้องพร้อมใช้งานระดับ Business-critical (แนะนำ ≥ 99.5%) เนื่องจากเป็น Gate ก่อน Go-Live |
+| **Performance/Scalability** | ต้องรองรับจำนวน Application ระดับหลายร้อยถึงพันตัว และ SBOM Ingestion จำนวนมากต่อวันจาก CI/CD หลายสาย |
+| **Data Retention** | Audit Trail, Finding History, Go-Live Approval Record ต้องเก็บย้อนหลังตามนโยบาย Compliance ขององค์กร (ขั้นต่ำตามข้อกำหนดของหน่วยงานกำกับ/Internal Audit) |
+| **Extensibility** | Integration Layer (ITSM Connector, SCA Platform Connector) ต้องออกแบบเป็น Plug-in/Interface เพื่อเพิ่มระบบปลายทางใหม่ได้โดยกระทบ Core น้อยที่สุด |
+| **Auditability** | ทุก Configuration (SLA, Severity Policy, License Policy, Routing Policy) ต้องมี Versioning และ Effective Date เพื่อสอบย้อนกลับได้ว่า ณ เวลาที่ตัดสินใจใช้ Policy ใด |
+| **Data Residency/Hosting** | **ปรับปรุง:** ระบบต้อง Deploy ได้แบบ **On-Premise ภายในองค์กรเป็นหลัก** (Data Center ขององค์กร) และ **อนุญาตให้ใช้ Public Cloud ผ่าน Managed Kubernetes (เช่น AWS EKS) เป็น Deployment Option เสริมได้** ทั้งนี้กรณีเลือกใช้ Public Cloud ต้องผ่านการประเมินความเสี่ยงด้าน Data Residency/Security ตามนโยบาย IT Risk ขององค์กรก่อน (Encryption at-rest/in-transit, Private VPC/Network Isolation, ห้ามเปิด Public Endpoint ตรงสำหรับ Database/Internal Service) — ดูรายละเอียดใน 11.1 |
+| **Usability/Accessibility** | ออกแบบตามมาตรฐาน **WCAG 2.1 Level AA** เป็นอย่างน้อย, รองรับ Keyboard Navigation ครบทุกฟังก์ชัน, สื่อความหมาย Severity/SLA Status ด้วย Label+Icon ไม่พึ่งสีอย่างเดียว (Colorblind-safe), รองรับทั้ง Light/Dark Mode พร้อม Contrast ตามเกณฑ์ (รายละเอียดในหัวข้อ 15) |
+
+---
+
+## 8. Data Model (High-level Entities)
+
+```mermaid
+erDiagram
+    APPLICATION ||--o{ APP_VERSION : has
+    APPLICATION {
+        string app_id
+        string app_name
+        string app_type "In-house/COTS/Mobile/API"
+        string owner_team
+        string business_unit
+        string criticality
+        bool internet_facing
+        string data_classification
+    }
+    APP_VERSION ||--o{ COMPONENT : contains
+    APP_VERSION ||--o{ SCAN_RESULT : has
+    APP_VERSION ||--o{ PENTEST_PROJECT : "tested by"
+    APP_VERSION {
+        string version_id
+        string commit_sha
+        string environment
+        datetime last_ingested_at
+    }
+    COMPONENT ||--o{ FINDING : "matched to"
+    COMPONENT {
+        string component_name
+        string version
+        string license
+        string scope "production/development"
+    }
+    FINDING ||--o{ TICKET : "linked to"
+    FINDING ||--o{ WAIVER : "covered by"
+    FINDING {
+        string cve_id
+        float cvss
+        float epss
+        bool kev_flag
+        string severity_tier
+        string vex_status
+        date due_date
+    }
+    WAIVER {
+        string waiver_id
+        string finding_id
+        string requested_by
+        string approved_by
+        string reason
+        date expiry_date
+        string status "Active/Expired/Revoked"
+    }
+    TICKET {
+        string external_system "Jira/SDP/ServiceNow"
+        string external_id
+        string status
+    }
+    SCAN_RESULT {
+        string scan_type "SBOM/SAST/Pentest"
+        datetime scanned_at
+        string result_status
+        bool is_manual_upload
+        string uploaded_by
+        string report_file_url
+        date validity_expiry_date
+    }
+    PENTEST_PROJECT ||--o{ FINDING : produces
+    PENTEST_PROJECT {
+        string project_id
+        string app_version_id
+        string status "Requested/Scoping/Testing In Progress/Report Draft/Report Final/Remediation Verification/Closed"
+        string engagement_type "Internal/Vendor"
+        string vendor_name
+        string contract_ref
+        decimal cost
+        string currency
+        date start_date
+        date end_date
+        string report_file_url
+    }
+    GO_LIVE_APPROVAL {
+        string app_version_id
+        bool sbom_pass
+        bool sast_pass
+        bool pentest_pass
+        string approver
+        datetime approved_at
+    }
+```
+
+---
+
+## 9. Process Workflow
+
+### 9.1 End-to-End Automated Workflow (SBOM → Monitoring → Ticketing → Closed-Loop)
+
+```mermaid
+flowchart TD
+    A[Code Commit] --> B[CI/CD Build]
+    B --> C["Generate SBOM (Syft/cdxgen) + Inject Metadata"]
+    C --> D["Push to Central Platform (API) - Dependency-Track"]
+    D --> E["Continuous Monitoring: Sync NVD/OSV/GH Advisory/CISA KEV/EPSS (daily)"]
+    E --> F["Delta Matching (24/7, ไม่ต้อง Rebuild)"]
+    F --> G{"Smart Noise Reduction\nCVSS + EPSS + KEV + Scope"}
+    G -->|ผ่านเกณฑ์ Critical/High| H["Routing Policy Engine"]
+    G -->|Medium/Low ไม่ผ่านเกณฑ์ Critical| I["บันทึก Finding ใน Backlog (ไม่เปิด Ticket อัตโนมัติ หรือเปิดเฉพาะ Jira ตาม Policy)"]
+    H --> J["สร้าง Ticket: ITSM (SDP) + Jira"]
+    J --> K["Dev แก้ไข Library / Patch"]
+    K --> L["CI/CD ส่ง SBOM ชุดใหม่"]
+    L --> F
+    F -->|ตรวจพบว่า Fixed แล้ว| M["Auto-Close Ticket ทุกระบบ + บันทึก SLA Met"]
+```
+
+### 9.2 Go-Live Security Gate Workflow
+
+```mermaid
+flowchart TD
+    A["ทีม Dev ยื่นขอ Go-Live สำหรับ App/Version"] --> B{"SBOM/SCA Scan ผ่าน?"}
+    B -->|No| B1["Block + แจ้งให้แก้ไข"]
+    B -->|Yes| C{"SAST Scan ผ่าน?"}
+    C -->|No| C1["Block + แจ้งให้แก้ไข"]
+    C -->|Yes| D{"เข้าเงื่อนไขต้อง Pentest?\n(Critical/Internet-facing/PII)"}
+    D -->|Yes, ยังไม่ผ่าน| D1["Block รอผล Pentest"]
+    D -->|Yes, ผ่านแล้ว| E["ตรวจ Critical/High Backlog คงเหลือ"]
+    D -->|No ไม่เข้าเงื่อนไข| E
+    E -->|มี Finding ค้าง ไม่มี Waiver| E1["Block / ต้องขอ Waiver"]
+    E -->|ไม่มี Finding ค้าง หรือมี Waiver อนุมัติ| F["AppSec อนุมัติ Go-Live"]
+    F --> G["ออก Go-Live Approval Record (Audit Trail)"]
+```
+
+### 9.3 VEX / Exception Handling Workflow
+
+```mermaid
+flowchart LR
+    A["พบ Finding ที่อาจไม่กระทบจริง"] --> B["Dev เสนอ VEX/Waiver พร้อมเหตุผล"]
+    B --> C{"AppSec พิจารณา"}
+    C -->|อนุมัติ| D["บันทึก VEX Status + ปิด/Suppress Finding"]
+    C -->|ไม่อนุมัติ| E["กลับสู่ Backlog พร้อม SLA เดิม"]
+    D --> F["ยิง Update ไป Jira: Won't Fix / Risk Accepted"]
+    D --> G["ยิง Update ไป ITSM: บันทึก Worklog + Approval Trail"]
+```
+
+---
+
+## 10. Integration Requirements
+
+### 10.1 SBOM Ingestion Metadata (Required Fields)
+
+| Field | คำอธิบาย |
+| --- | --- |
+| `projectName` | ชื่อ Service/Repository |
+| `projectVersion` | Git Commit SHA หรือ Semantic Version |
+| `OwnerTeam` | ทีมเจ้าของ (จาก CODEOWNERS/CI Variable) |
+| `Environment` | Production/Staging/Dev |
+| `RepoURL` | Link Repository |
+| `jira_project_key` | Project Key ปลายทางใน Jira |
+| `sdp_category` / `service_name` | Category ปลายทางใน ITSM |
+| `owner_email` | อีเมล Tech Lead ทีม |
+
+### 10.2 Connector Framework (ITSM)
+
+- ต้องออกแบบ Interface กลาง (เช่น `ITicketConnector`) ที่มี method: `createTicket()`, `updateTicket()`, `closeTicket()`, `getTicketStatus()`, `attachComment()`
+- Implementation เริ่มต้น: Jira Connector, ManageEngine ServiceDesk Plus Connector
+- Config per Routing Policy: severity tier ใดยิงไปช่องทางใดบ้าง (รองรับยิงได้มากกว่า 1 ปลายทางพร้อมกัน)
+- เก็บ Cross-reference ID (Finding ID ↔ External Ticket ID ต่อระบบ) เพื่อ Sync สถานะสองทาง
+
+### 10.3 Threat Intelligence Sources
+
+NVD, GitHub Security Advisory Database, OSV, CISA KEV, EPSS — Sync อัตโนมัติผ่าน Central Platform (Dependency-Track) อย่างน้อยวันละ 1-2 ครั้ง
+
+---
+
+## 11. Technology Reference (แนวทางเทคโนโลยีเริ่มต้น)
+
+| Layer | ตัวเลือก |
+| --- | --- |
+| SBOM Format | CycloneDX (JSON) เป็นหลัก, SPDX สำหรับ License Compliance |
+| SBOM Generator | Syft, Trivy, cdxgen (รันใน CI/CD) |
+| Central SBOM/SCA Platform | **OWASP Dependency-Track** (เริ่มต้น) ขยายไป Snyk/Mend/Sonatype ได้ในอนาคต |
+| CI/CD | GitHub Actions / GitLab CI / Azure DevOps / Jenkins ผ่าน Shared Pipeline Template |
+| ITSM/Ticketing | Jira REST API, ManageEngine ServiceDesk Plus REST API, (ออกแบบเผื่อ ServiceNow) |
+| Notification | Slack / MS Teams Webhook |
+| Identity | SAML2/OIDC SSO เชื่อม Active Directory องค์กร |
+| Containerization | Docker — ทุก Component ของ Platform (Central API, Dashboard/Frontend, Background Worker/Sync Job, Connector Framework) Build เป็น Container Image เดียวกันไม่ว่าจะ Deploy ด้วยวิธีใด |
+| Deployment Platform | Docker Compose/Swarm (On-Premise) หรือ Kubernetes/OpenShift Container Platform - OCP (On-Premise) หรือ Managed Kubernetes บน Public Cloud เช่น AWS EKS (Option เสริม) — ดูรายละเอียดใน 11.1 |
+| Database | PostgreSQL แบบ **Cluster/High Availability** (Primary + Replica พร้อม Automatic Failover) — Tooling/Operator เลือกตามความเหมาะสมของ Deployment Target ในขั้น Implementation |
+
+### 11.1 Deployment Architecture (Multi-Target Deployment)
+
+> **ยืนยัน:** ระบบต้องออกแบบให้ Deploy ได้หลายรูปแบบ (Deployment-target Agnostic) โดยไม่ผูกกับ Infrastructure ใดโดยเฉพาะ — ทุก Component ของ Platform ต้อง Build เป็น **Docker Container Image เดียวกัน** และรับค่า Configuration ผ่าน Environment Variable/Config Map เพื่อให้ Deploy ได้ทั้ง 3 รูปแบบด้านล่างโดยไม่ต้องแก้โค้ด
+
+1. **Docker Compose / Docker Swarm (On-Premise, Production เต็มรูปแบบ):**
+   - **ยืนยัน:** รองรับเป็น **Production Deployment Option เต็มรูปแบบ** ไม่ใช่แค่ Dev/Pilot สำหรับองค์กร/สาขาที่ Infrastructure ยังไม่มี Kubernetes/OpenShift พร้อมใช้งาน
+   - ใช้ Docker Swarm Mode (หรือ Compose + External Load Balancer) เพื่อให้ได้ Multi-node Redundancy ระดับพื้นฐาน (Service Replica, Restart Policy, Health Check)
+   - ฐานข้อมูลในโหมดนี้ให้ใช้ **External HA PostgreSQL Cluster** (แยกออกจาก Application Container) เพื่อไม่ให้ Database เป็น Single Point of Failure ของ Stack
+2. **Kubernetes / OpenShift Container Platform (On-Premise, Enterprise Production):**
+   - แพ็กเกจ Deployment เป็น **Helm Chart** เดียว (รองรับทั้ง Vanilla Kubernetes และ Red Hat OpenShift - OCP) พร้อม Resource Request/Limit, HPA (Horizontal Pod Autoscaler), Liveness/Readiness Probe
+   - ใช้ Ingress/Route (OCP Route หรือ Kubernetes Ingress Controller) สำหรับ TLS Termination หน้า Dashboard/API
+   - PostgreSQL รันเป็น StatefulSet ผ่าน Kubernetes Operator (เลือก Operator ที่เหมาะสม เช่น CloudNativePG/Crunchy Postgres Operator/Zalando Postgres Operator ในขั้น Implementation)
+3. **Managed Kubernetes บน Public Cloud เช่น AWS EKS (Option เสริม):**
+   - **ยืนยัน:** อนุญาตให้ใช้ Public Cloud Managed Kubernetes เป็นทางเลือก Deployment เพิ่มเติมนอกเหนือจาก On-Premise ได้ (ปรับปรุงจาก NFR เดิมในหัวข้อ 7 ที่เคยระบุ On-Premise เท่านั้น) โดยมีเงื่อนไข:
+     - ต้องผ่านการประเมินความเสี่ยงด้าน Data Residency/Security ตามนโยบาย IT Risk ขององค์กรก่อนใช้งานจริง (Data Classification, Encryption at-rest/in-transit, Network Isolation)
+     - ต้อง Deploy ภายใน Private VPC/Subnet เท่านั้น ห้ามเปิด Public Endpoint ตรงสำหรับ Database/Internal Service (เข้าถึงผ่าน VPN/Direct Connect/Transit Gateway ขององค์กรเท่านั้น)
+     - Helm Chart ชุดเดียวกับข้อ 2 ต้องใช้ได้กับ EKS โดยไม่ต้องแก้ไข (Deployment-target Agnostic)
+
+**Database Clustering (PostgreSQL):**
+
+- ต้องออกแบบ Data Layer ให้รองรับ **PostgreSQL แบบ Cluster/High Availability** (อย่างน้อย Primary + 1 Replica พร้อม Automatic Failover) ในทุกรูปแบบ Deployment ข้างต้น
+- **ยืนยัน:** ไม่ระบุเจาะจง Tooling/Operator สำหรับทำ HA (เช่น Patroni, CloudNativePG ฯลฯ) ในเอกสารนี้ — ให้เป็นการตัดสินใจของ DevOps/Platform Team ในขั้น Implementation ตามความเหมาะสมของแต่ละ Deployment Target
+- ต้องมี Automated Backup + Point-in-Time Recovery (PITR) และทดสอบ Restore ตามรอบที่กำหนด (อ้างอิง NFR Data Retention หัวข้อ 7)
+
+---
+
+## 12. Severity & SLA Policy (Configurable — ค่าเริ่มต้นเสนอ)
+
+> จำนวนวัน SLA ด้านล่างเป็น **ค่าเริ่มต้น (Default)** เท่านั้น ระบบต้องให้ AppSec แก้ไขผ่านหน้า Policy Configuration ได้โดยไม่ต้องแก้โค้ด (อ้างอิง FR-5.1)
+
+| Severity Tier | เกณฑ์การจัดกลุ่ม (ตัวอย่าง) | SLA เริ่มต้น (Configurable) | เปิด Ticket ที่ไหน (Default Routing) |
+| --- | --- | --- | --- |
+| Critical | KEV=True หรือ (EPSS≥0.3 และ CVSS≥9.0) | 7 วัน | ITSM (SDP) + Jira |
+| High | CVSS 7.0–8.9 หรือ EPSS≥0.3 กับ CVSS≥7.0 | 30 วัน | ITSM (SDP) + Jira |
+| Medium | CVSS 4.0–6.9 | 90 วัน | Jira เท่านั้น |
+| Low | CVSS < 4.0 | Best-effort/ตามรอบ Sprint | Jira Backlog เท่านั้น |
+
+---
+
+## 13. Success Criteria / KPI
+
+- % ของ Application ที่มี SBOM/SCA Scan ที่ Sync ล่าสุดไม่เกิน 90 วัน
+- % ของ Application ที่ผ่าน Go-Live Gate ครบ 3 ด้าน (SBOM, SAST, Pentest ถ้าเข้าเงื่อนไข) ก่อนขึ้น Production
+- Mean Time to Remediate (MTTR) แยกตาม Severity Tier เทียบกับ SLA
+- % SLA Compliance (Finding ที่ปิดภายในกำหนดเทียบทั้งหมด)
+- % ของ Ticket ที่เปิด/ปิดแบบอัตโนมัติ (Zero-Touch) เทียบกับที่ต้องทำ Manual
+- จำนวน Critical/High ที่ค้างเกิน SLA ต่อเดือน (แนวโน้มต้องลดลง)
+
+---
+
+## 14. Assumptions & Open Items
+
+- สมมติฐาน: องค์กรจะเริ่มด้วย OWASP Dependency-Track เป็น Central Platform ก่อน (ยังไม่มีเครื่องมือ SCA/SAST อื่นในปัจจุบัน)
+- SAST tool ที่จะใช้ยังไม่ระบุ — ต้องยืนยันเพิ่มเติมในขั้นตอนออกแบบระบบ (Design Phase) ว่าจะรับผลจากเครื่องมือใด (เช่น SonarQube/Checkmarx/Semgrep) โดยตั้งเป้ารับผลแบบ Automated ผ่าน API/Pipeline เช่นเดียวกับ SBOM
+- **Pentest ยืนยันแล้วว่าเป็นกระบวนการ Manual Upload** (ไม่มีการเชื่อมต่อ API อัตโนมัติกับเครื่องมือ Pentest เนื่องจากเป็นการทดสอบที่ทำเป็นรอบ/Project-based) — ดูรายละเอียดใน FR-6.5
+- **ยืนยันแล้ว:** ผู้รับผิดชอบ Retest ของ Pentest คือ Internal Team (กรณี Internal) หรือ Vendor เดิม (กรณีจ้าง) โดยมีเงื่อนไข Fallback ให้ Internal Team รับช่วงต่อหาก Vendor เกินระยะเวลาที่ตกลงไว้ — ดูรายละเอียดใน FR-6.5.10
+- **ยืนยันแล้ว:** COTS/Vendor Application ที่ไม่มี CI/CD รองรับทั้งการให้ Vendor ส่ง SBOM มาโดยตรง และการให้ Vendor ส่ง Source Code มาให้ทีมภายในสร้าง SBOM เอง — ดูรายละเอียดใน FR-2.6
+- **ยืนยันแล้ว:** License ที่ผิด Policy เป็นเพียง Warning แจ้งเตือน Owner เท่านั้น **ไม่ Block Go-Live Gate** และไม่นับรวมเป็นช่องโหว่ (Finding) — ดูรายละเอียดใน FR-9.3
+- **ยืนยันแล้ว:** Severity Tier ใช้ CVSS+EPSS+KEV เพียงอย่างเดียว ไม่นำ Business Criticality ของ Application มาถ่วงน้ำหนักเพิ่ม/ลดโดยตรง — ดูรายละเอียดใน FR-4.5
+- **ยืนยันแล้ว:** ระบบต้อง Host แบบ On-Premise ภายในองค์กรเท่านั้น ห้ามใช้ Public Cloud/SaaS ในการเก็บข้อมูล — ดูรายละเอียดในหัวข้อ 7 (Non-Functional Requirements)
+- จำนวนวัน SLA ที่ระบุในหัวข้อ 12 เป็นเพียงค่าตั้งต้น รอ AppSec ยืนยัน/ปรับใน Policy Configuration จริง
+- รายชื่อ ITSM ปลายทางที่ต้องรองรับนอกจาก Jira/SDP (เช่น ServiceNow) จะยืนยันเพิ่มเติมเมื่อมีความต้องการจริงในอนาคต เนื่องจากออกแบบ Connector Framework ให้ขยายได้อยู่แล้ว
+- **ยืนยันแล้ว:** SBOM Ingestion ยิงตรงเข้า Dependency-Track API โดยใช้ API Key แบบ Per-Team/Per-Project ของ Dependency-Track เอง (ไม่ใช่ Auth Layer ที่ Platform นี้พัฒนาเอง) — ดูรายละเอียดใน FR-2.7
+- **ยืนยันแล้ว:** Global Suppression มีกลไกเดียวผ่าน VEX Workflow (FR-8.3) เท่านั้น ไม่มีกลไกแยกสำหรับ Compensating Control อีกต่อไป (ยกเลิก FR-4.3 เดิม) — ดูรายละเอียดใน FR-8.3
+- **ยืนยันแล้ว:** เมื่อ Platform ไม่พร้อมใช้งาน ให้ใช้แนวทาง Fail-open พร้อม Manual Break-glass Approval โดย AppSec Manager และบันทึก Retroactive Audit Trail เมื่อระบบกลับมาใช้งานได้ — ดูรายละเอียดใน FR-6.7
+- **ยืนยันแล้ว:** การอนุมัติ Waiver ผ่านมือถือ (Notification Deep-link) ใช้ SSO Session เดิม ไม่ต้อง Step-up Authentication เพิ่มเติม — ดูรายละเอียดในหัวข้อ 15 (UXR-10)
+- **ยืนยันแล้ว:** UI รองรับสองภาษา (ไทย/อังกฤษ Toggle) โดยคงศัพท์เทคนิคเป็นภาษาอังกฤษ — ดูรายละเอียดในหัวข้อ 15 (UXR-12)
+- **ยืนยันแล้ว:** ปรับปรุง NFR Data Residency เดิม — อนุญาตให้ Deploy บน Public Cloud Managed Kubernetes (เช่น AWS EKS) เป็น Option เสริมนอกเหนือจาก On-Premise ได้ ภายใต้เงื่อนไขด้าน Security/Network Isolation — ดูรายละเอียดใน 11.1
+- **ยืนยันแล้ว:** ไม่ระบุเจาะจง Tooling สำหรับ PostgreSQL HA/Clustering (เช่น Patroni/Operator) ในเอกสารนี้ ให้เป็นการตัดสินใจของ DevOps/Platform Team ในขั้น Implementation — ดูรายละเอียดใน 11.1
+- **ยืนยันแล้ว:** Docker Compose/Swarm รองรับเป็น Production Deployment Option เต็มรูปแบบ ไม่ใช่แค่ Dev/Pilot — ดูรายละเอียดใน 11.1
+
+---
+
+## 15. UX/UI & Accessibility Requirements
+
+> ผู้ใช้งานหลักคือ AppSec/Dev/Compliance/Management ที่ต้องเสพข้อมูลความเสี่ยงจำนวนมากทุกวัน (Data-dense Enterprise Dashboard) ข้อกำหนดด้านล่างมีเป้าหมายให้ผู้ใช้งาน **ตัดสินใจได้เร็วและถูกต้อง ลดความผิดพลาดจากการอ่านข้อมูลผิด และเข้าถึงได้ตามมาตรฐาน Accessibility**
+
+### UXR-1: Design Language & Visual System
+
+- ใช้แนวทาง Enterprise/Data-dense Dashboard (แบบ SaaS Security/Fintech Console) รองรับทั้ง **Light Mode และ Dark Mode** โดย Dark Mode เป็นโหมดที่ทีม AppSec มักใช้งานเป็นหลัก (ลดอาการล้าตาเมื่อจ้องหน้าจอนาน)
+- ใช้ Icon จาก Vector Icon Set มาตรฐานเดียวทั้งระบบ (เช่น Phosphor/Heroicons) **ห้ามใช้ Emoji แทน Icon เชิงโครงสร้าง** (Navigation/Severity/Status) เพื่อความคงเส้นคงวาข้าม OS/Browser
+- กำหนด Design Token กลาง (สี, Spacing scale 4/8px, Typography scale) ให้ทุกหน้าจอ (Dashboard, Application Detail, Go-Live Gate, Pentest Board) ใช้ชุดเดียวกัน ห้าม Hardcode สี/ระยะห่างแยกต่อหน้าจอ
+- แนะนำ Typography ตระกูล Monospace/Grotesk สำหรับตัวเลขและข้อมูล (เช่น Fira Code/Fira Sans หรือเทียบเท่า) เพื่อให้ตัวเลข CVSS/EPSS/SLA อ่านง่ายและจัดคอลัมน์ตรงกัน
+
+### UXR-2: Severity & Status Color Accessibility (อ้างอิง FR-4, FR-10)
+
+- ระดับความรุนแรง (Critical/High/Medium/Low) และสถานะ SLA (Within SLA/Overdue) **ห้ามสื่อสารด้วยสีเพียงอย่างเดียว** ต้องมี Label ข้อความ + Icon/Pattern กำกับเสมอ (รองรับผู้ใช้ Colorblind ตาม WCAG 1.4.1 Use of Color)
+- Contrast ของตัวหนังสือ ≥ 4.5:1 และของ Icon/เส้นขอบที่สื่อความหมาย ≥ 3:1 ทั้งใน Light และ Dark Mode (ต้องทดสอบแยกทั้ง 2 โหมด ไม่อนุมานจากโหมดเดียว)
+- ต้องมี Legend/คำอธิบายมาตรฐานสีกำกับทุกหน้าที่มี Severity/Heatmap ปรากฏ
+
+### UXR-3: Dashboard & Data Visualization (อ้างอิง FR-10, FR-6.6)
+
+- **Risk Heatmap (Business Unit × Severity, FR-10.1):** ใช้ Heatmap พร้อม Legend ตัวเลขกำกับทุก Cell และมี Data Table/Grid สำรอง (Fallback) สำหรับผู้ใช้ Screen Reader/Keyboard-only — ห้ามใช้ Heatmap ที่อ่านค่าได้จากสีอย่างเดียว
+- **KPI Card (SLA Compliance %, MTTR, FR-10.3):** ใช้ Bullet/Gauge Chart ที่แสดงตัวเลขและ Target กำกับชัดเจน ไม่ใช้กราฟที่ต้องตีความจากสี/ตำแหน่งเพียงอย่างเดียว
+- **Remediation Trend/Timeline (FR-6.6.3):** ต้องกด Focus/Keyboard เพื่อดูค่ารายจุดได้ (ไม่ใช่ Hover เมาส์อย่างเดียว) และมี Data Table สรุปประกอบกราฟเสมอ
+- Widget ที่ Auto-refresh (เช่น New Finding Counter) ต้อง Honor `prefers-reduced-motion` และไม่ Animate รัวจนรบกวนการอ่านข้อมูล Critical
+
+### UXR-4: Data Table & Backlog List UX (อ้างอิง FR-5.4, FR-10.2)
+
+- ตาราง Backlog/Finding List ต้องรองรับ Sort, Filter (Severity/SLA Status/Application) และ **Multi-select + Bulk Action** (เช่น Bulk Request Waiver, Bulk Assign Ticket) แทนการกดทีละแถว
+- Column สำคัญ (ชื่อ Application/Finding) ต้อง Sticky เมื่อ Scroll แนวนอน และห้าม Truncate ข้อความสำคัญ (ชื่อช่องโหว่, ปุ่ม Action) จนอ่านไม่ครบโดยไม่มีทางเข้าถึงข้อความเต็ม
+- บนหน้าจอขนาดเล็ก (Tablet ≤768px) ให้ปรับ Layout เป็น Card List หรือ Horizontal Scroll พร้อม Wrapper แทนการปล่อยให้ตารางล้น Layout
+
+### UXR-5: Drill-down & Traceability Navigation (อ้างอิง FR-10.5)
+
+- ใช้ Breadcrumb แสดง Path เต็ม (Application > Version > Component > Finding > Ticket) ทุกครั้งที่ผู้ใช้ Drill-down ลึกเกิน 2 ระดับ เพื่อให้ทราบตำแหน่งและย้อนกลับได้ถูกจุด
+- การกด Back จาก Finding Detail กลับสู่ Backlog ต้องคง Filter/ตำแหน่ง Scroll เดิมไว้ (ไม่ Reset State)
+
+### UXR-6: Role-based Scoped Navigation (อ้างอิง หัวข้อ 4 RBAC)
+
+- เมนู/หน้าจอที่ผู้ใช้ไม่มีสิทธิ์ต้อง **ไม่แสดงตั้งแต่แรก** (ไม่ใช่แสดงแล้วค่อย Block ภายหลังเมื่อกด) เพื่อลดความสับสนของ Dev Team ที่เห็นเฉพาะ Application ของทีมตนเอง
+- ต้องมี Indicator ชัดเจนแสดง Scope ที่กำลังดูอยู่ (เช่น Badge "ทีมของคุณ: <OwnerTeam>") โดยเฉพาะสำหรับ Role ที่ถูกจำกัดข้อมูล (Dev Team/Tech Lead)
+
+### UXR-7: Forms & Approval Workflow UX (อ้างอิง FR-6.1–6.2, FR-8)
+
+- แบบฟอร์มขอ Waiver/VEX และ Go-Live Approval ต้องมี Inline Validation ต่อ Field และ **Error Summary** ที่โฟกัสอัตโนมัติเมื่อ Submit ไม่ผ่าน พร้อมลิงก์ไปยัง Field ที่ผิด (ตาม WCAG Error Identification)
+- ปุ่ม Submit ต้อง Disable ระหว่างส่งคำขอ และแสดงสถานะ Loading → Success/Error ชัดเจน เพื่อป้องกันการกดซ้ำ (Duplicate Waiver Request/Approval)
+- Modal อนุมัติ (Waiver/Go-Live/VEX) ต้องไม่มี Keyboard Trap และคืน Focus กลับจุดเดิมเมื่อปิด Modal
+
+### UXR-8: Notification & Real-time Status Updates (อ้างอิง FR-5.3, FR-6.5.2)
+
+- Badge/Counter ที่อัปเดตแบบ Real-time (SLA ใกล้ครบกำหนด, New Finding, Pentest State เปลี่ยน) ต้องประกาศผ่าน Screen Reader ด้วย `role="status"` แบบสรุปความหมาย (เช่น "มี Finding ใหม่ 3 รายการ") โดยไม่ดึง Focus ออกจากงานที่ผู้ใช้กำลังทำอยู่
+
+### UXR-9: Keyboard & Focus Accessibility
+
+- ทุก Interactive Control (Table Row Action, Filter Chip, ปุ่มเปลี่ยนสถานะ Pentest Project) ต้องกด Tab ได้ตามลำดับ Visual และมี Focus Ring ที่มองเห็นชัดเจนทุกจุด รวมถึงภายใน Modal
+
+### UXR-10: Responsive Breakpoints
+
+- ระบบเป็น Internal Enterprise Tool ที่ใช้งานหลักบน Desktop/Laptop จึงกำหนด Breakpoint หลักที่ 1440px และ 1024px เป็นอันดับแรก และต้องรองรับ Tablet (768px) สำหรับกรณี Management ดู Dashboard บน iPad
+- ไม่บังคับ Optimize เต็มรูปแบบสำหรับ Mobile Phone (375px) ยกเว้นหน้า **Approve/Reject Waiver ผ่านการแจ้งเตือน (Notification Deep-link)** ซึ่งต้องใช้งานได้บนมือถือเพื่อรองรับการอนุมัติเร่งด่วนนอกเวลางาน — **ยืนยัน:** ใช้ SSO Session เดิมของผู้ใช้ในการยืนยันตัวตน (ไม่ต้องมี Step-up Authentication เพิ่มเติม เช่น OTP)
+
+### UXR-11: Compliance Target
+
+- กำหนดเป้าหมาย Accessibility ตามมาตรฐาน **WCAG 2.1 Level AA** เป็นอย่างน้อยสำหรับทุกหน้าจอที่ผู้ใช้โต้ตอบ (Dashboard, Forms, Approval Workflow)
+
+### UXR-12: Localization (Bilingual UI)
+
+- **ยืนยัน:** ระบบต้องรองรับการสลับภาษา **ไทย/อังกฤษ (Language Toggle)** ทั่วทั้ง UI โดยศัพท์เทคนิคเฉพาะทาง (เช่น CVE, CVSS, Severity Tier, ชื่อ Field ของ SBOM/VEX) ให้คงเป็นภาษาอังกฤษเสมอในทั้ง 2 โหมด เพื่อไม่ให้กำกวมกับมาตรฐานสากล
+- ค่าเริ่มต้นของภาษาอ้างอิงตาม Locale ของผู้ใช้ (Browser/AD Profile) และผู้ใช้สามารถเปลี่ยน Preference เองได้
+</textarea>
+
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
+
+  const renderer = new marked.Renderer();
+  const originalCode = renderer.code.bind(renderer);
+  renderer.code = function (code, infostring) {
+    const lang = (infostring || "").trim().toLowerCase();
+    if (lang === "mermaid") {
+      return '<div class="mermaid">' + code + "</div>";
+    }
+    return originalCode(code, infostring);
+  };
+
+  marked.setOptions({ renderer: renderer, gfm: true, breaks: false, headerIds: true });
+
+  const src = document.getElementById("md-source").value;
+  document.getElementById("content").innerHTML = marked.parse(src);
+
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+
+</body>
+</html>

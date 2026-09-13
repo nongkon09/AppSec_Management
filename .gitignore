@@ -1,0 +1,39 @@
+# --- Python / backend ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.db
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# --- Alembic ---
+backend/alembic_gen.db
+
+# --- Pentest report uploads (local disk storage) ---
+backend/uploads/
+
+# --- OS / editor ---
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# --- Claude Code tooling (skills, agent configs) — not part of the shipped
+# application, so kept out of the product's version-controlled history ---
+.agents/
+.claude/
+skills-lock.json
+.github/prompts/

@@ -11,6 +11,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Button, ErrorSummary, FormField, SelectBox, TextInput } from '../../components/ui'
+import { apiErrorMessage } from '../../lib/ui-helpers'
+import { formatDateTime } from '../../lib/format'
 import { IconOverdue, IconRefresh, IconUpload, IconWithinSla } from '../../lib/icons'
 import { listApplications, listAppVersions } from '../inventory/api'
 import {
@@ -25,8 +28,10 @@ export function SbomIngestionPage() {
 
   return (
     <div className="page">
-      <h1>{t('sbom.title')}</h1>
-      <p className="field-hint">{t('sbom.intro')}</p>
+      <div>
+        <h1>{t('sbom.title')}</h1>
+        <p className="page-sub">{t('sbom.intro')}</p>
+      </div>
 
       <ManualUploadSection />
       <SyncSection />
@@ -72,72 +77,44 @@ function ManualUploadSection() {
     mutation.mutate()
   }
 
-  const serverErrorMessage =
-    mutation.isError &&
-    ((mutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-      t('sbom.uploadFailed'))
+  const message = validationError ?? (mutation.isError ? apiErrorMessage(mutation.error, t('sbom.uploadFailed')) : null)
 
   return (
-    <section aria-labelledby="manual-upload-heading">
+    <section aria-labelledby="manual-upload-heading" className="card card-pad">
       <h2 id="manual-upload-heading" className="section-title">
         {t('sbom.manualUploadSection')}
       </h2>
       <p className="field-hint">{t('sbom.manualUploadHint')}</p>
 
-      <form onSubmit={handleSubmit} noValidate>
-        {(validationError || serverErrorMessage) && (
-          <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-            <p>{t('sbom.uploadErrorSummary')}</p>
-            <ul>
-              <li>{validationError || serverErrorMessage}</li>
-            </ul>
-          </div>
-        )}
+      <form className="stack" onSubmit={handleSubmit} noValidate>
+        {message && <ErrorSummary ref={errorSummaryRef} title={t('sbom.uploadErrorSummary')} message={message} />}
 
-        <div className="filter-bar">
-          <div className="filter-group">
-            <label htmlFor="sbom-app">{t('inventory.appName')}</label>
-            <select
-              id="sbom-app"
+        <div className="form-grid">
+          <FormField label={t('inventory.appName')}>
+            <SelectBox
               value={applicationId}
-              onChange={(event) => setApplicationId(event.target.value)}
-            >
-              <option value="">{t('sbom.selectApplication')}</option>
-              {applications?.items.map((app) => (
-                <option key={app.id} value={app.id}>
-                  {app.app_name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label htmlFor="sbom-version">{t('sbom.versionLabel')}</label>
-            <input
-              id="sbom-version"
-              type="text"
-              placeholder="1.0.0"
-              value={versionLabel}
-              onChange={(event) => setVersionLabel(event.target.value)}
+              onChange={setApplicationId}
+              placeholder={t('sbom.selectApplication')}
+              options={(applications?.items ?? []).map((app) => ({ value: app.id, label: app.app_name }))}
             />
-          </div>
-
-          <div className="filter-group filter-group-grow">
-            <label htmlFor="sbom-file">{t('sbom.file')}</label>
-            <input
-              id="sbom-file"
+          </FormField>
+          <FormField label={t('sbom.versionLabel')}>
+            <TextInput placeholder="1.0.0" value={versionLabel} onChange={(event) => setVersionLabel(event.target.value)} />
+          </FormField>
+          <FormField label={t('sbom.file')} className="field-wide">
+            <TextInput
               type="file"
               accept="application/json,.json"
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
-          </div>
+          </FormField>
         </div>
 
         <div className="form-actions">
-          <button type="submit" disabled={mutation.isPending}>
+          <Button type="submit" variant="primary" disabled={mutation.isPending}>
             <IconUpload />
             {mutation.isPending ? t('common.saving') : t('sbom.upload')}
-          </button>
+          </Button>
           {mutation.isSuccess && (
             <span className="form-success" role="status">
               {t('sbom.uploadSuccess', {
@@ -166,17 +143,17 @@ function SyncSection() {
   })
 
   return (
-    <section aria-labelledby="sync-heading">
+    <section aria-labelledby="sync-heading" className="card card-pad">
       <h2 id="sync-heading" className="section-title">
         {t('sbom.syncSection')}
       </h2>
       <p className="field-hint">{t('sbom.syncHint')}</p>
 
       <div className="form-actions">
-        <button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
           <IconRefresh />
           {mutation.isPending ? t('common.saving') : t('sbom.syncNow')}
-        </button>
+        </Button>
       </div>
 
       {mutation.isError && (
@@ -186,7 +163,7 @@ function SyncSection() {
       )}
 
       {mutation.isSuccess && (
-        <dl className="detail-grid" role="status">
+        <dl className="detail-grid sync-result" role="status">
           <div>
             <dt>{t('sbom.projectsSeen')}</dt>
             <dd className="mono">{mutation.data.projects_seen}</dd>
@@ -239,20 +216,20 @@ function StaleCheckSection() {
   })
 
   return (
-    <section aria-labelledby="stale-heading">
+    <section aria-labelledby="stale-heading" className="card card-pad">
       <h2 id="stale-heading" className="section-title">
         {t('sbom.staleSection')}
       </h2>
       <p className="field-hint">{t('sbom.staleHint')}</p>
 
       <div className="form-actions">
-        <button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
           {mutation.isPending ? t('common.saving') : t('sbom.runStaleCheck')}
-        </button>
+        </Button>
       </div>
 
       {mutation.isSuccess && (
-        <p role="status">
+        <p role="status" className="inline sync-result">
           {mutation.data.newly_flagged_version_ids.length > 0 ? <IconOverdue /> : <IconWithinSla />}
           {t('sbom.staleResult', {
             newlyFlagged: mutation.data.newly_flagged_version_ids.length,
@@ -289,43 +266,30 @@ function IngestionHistorySection() {
       </h2>
       <p className="field-hint">{t('sbom.historyHint')}</p>
 
-      <div className="filter-bar">
-        <div className="filter-group">
-          <label htmlFor="history-app">{t('inventory.appName')}</label>
-          <select
-            id="history-app"
+      <div className="toolbar section-gap">
+        <FormField label={t('inventory.appName')}>
+          <SelectBox
             value={applicationId}
-            onChange={(event) => {
-              setApplicationId(event.target.value)
+            onChange={(value) => {
+              setApplicationId(value)
               setVersionId('')
             }}
-          >
-            <option value="">{t('sbom.selectApplication')}</option>
-            {applications?.items.map((app) => (
-              <option key={app.id} value={app.id}>
-                {app.app_name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <label htmlFor="history-version">{t('sbom.versionLabel')}</label>
-          <select
-            id="history-version"
+            placeholder={t('sbom.selectApplication')}
+            options={(applications?.items ?? []).map((app) => ({ value: app.id, label: app.app_name }))}
+          />
+        </FormField>
+        <FormField label={t('sbom.versionLabel')}>
+          <SelectBox
             value={versionId}
+            onChange={setVersionId}
             disabled={!applicationId}
-            onChange={(event) => setVersionId(event.target.value)}
-          >
-            <option value="">{t('sbom.selectVersion')}</option>
-            {versions?.map((version) => (
-              <option key={version.id} value={version.id}>
-                {version.version_label}
-                {version.is_stale ? ` (${t('sbom.stale')})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+            placeholder={t('sbom.selectVersion')}
+            options={(versions ?? []).map((version) => ({
+              value: version.id,
+              label: version.is_stale ? `${version.version_label} (${t('sbom.stale')})` : version.version_label,
+            }))}
+          />
+        </FormField>
       </div>
 
       {isLoading && <p role="status">{t('common.loading')}</p>}
@@ -349,7 +313,7 @@ function IngestionHistorySection() {
             <tbody>
               {history.map((entry) => (
                 <tr key={entry.id}>
-                  <td className="mono">{new Date(entry.scanned_at).toLocaleString()}</td>
+                  <td className="nowrap">{formatDateTime(entry.scanned_at)}</td>
                   <td>{entry.scan_type.toUpperCase()}</td>
                   <td>{entry.result_status}</td>
                   <td>{entry.is_manual_upload ? t('sbom.manual') : t('sbom.automated')}</td>

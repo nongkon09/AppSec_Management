@@ -18,6 +18,7 @@ import {
   IconSeverityMedium,
   IconWithinSla,
 } from '../lib/icons'
+import { SEVERITY_LABEL } from '../features/findings/labels'
 import type { SeverityTier } from '../features/findings/types'
 
 const SEVERITY_ICON = {
@@ -27,11 +28,10 @@ const SEVERITY_ICON = {
   low: IconSeverityLow,
 } as const
 
-const SEVERITY_LABEL: Record<SeverityTier, string> = {
-  critical: 'Critical',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
+/** The tier's shape-coded icon on its own, tinted with the tier colour. */
+export function SeverityIcon({ tier }: { tier: SeverityTier }) {
+  const IconComponent = SEVERITY_ICON[tier]
+  return <IconComponent className={`sev-icon-${tier}`} />
 }
 
 export function SeverityBadge({ tier }: { tier: SeverityTier }) {

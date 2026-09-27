@@ -14,6 +14,7 @@ import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SeverityBadge } from '../../components/SeverityBadge'
+import { Button, CheckboxField, ErrorSummary, FormField, SelectBox, TextInput } from '../../components/ui'
 import { useAuth } from '../auth/context'
 import { can } from '../../lib/rbac'
 import type { SeverityTier } from '../findings/types'
@@ -59,14 +60,16 @@ export function PolicyPage() {
 
   return (
     <div className="page">
-      <h1>{t('policy.title')}</h1>
-      <p className="detail-meta">
-        {t('policy.effectiveVersion', {
-          version: effective.version,
-          date: effective.effective_from,
-          author: effective.created_by,
-        })}
-      </p>
+      <div>
+        <h1>{t('policy.title')}</h1>
+        <p className="page-sub">
+          {t('policy.effectiveVersion', {
+            version: effective.version,
+            date: effective.effective_from,
+            author: effective.created_by,
+          })}
+        </p>
+      </div>
 
       <section aria-labelledby="sla-heading">
         <h2 id="sla-heading" className="section-title">
@@ -246,14 +249,13 @@ function SlaPolicyForm({ policy }: { policy: PolicySet }) {
   }
 
   return (
-    <form onSubmit={handlePublish} noValidate>
+    <form className="stack" onSubmit={handlePublish} noValidate>
       {(formError || publishMutation.isError) && (
-        <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-          <p>{t('policy.publishErrorSummary')}</p>
-          <ul>
-            <li>{formError ?? t('policy.publishFailed')}</li>
-          </ul>
-        </div>
+        <ErrorSummary
+          ref={errorSummaryRef}
+          title={t('policy.publishErrorSummary')}
+          message={formError ?? t('policy.publishFailed')}
+        />
       )}
 
       <div className="table-scroll">
@@ -275,7 +277,7 @@ function SlaPolicyForm({ policy }: { policy: PolicySet }) {
                   <label className="visually-hidden" htmlFor={`sla-${tier}`}>
                     {t('policy.slaDaysFor', { tier })}
                   </label>
-                  <input
+                  <TextInput
                     id={`sla-${tier}`}
                     type="number"
                     className="input-numeric mono"
@@ -300,44 +302,27 @@ function SlaPolicyForm({ policy }: { policy: PolicySet }) {
         </table>
       </div>
 
-      <fieldset className="filter-group">
-        <legend>{t('policy.dependencyScopeSection')}</legend>
-        <label className="checkbox-row">
-          <input
-            type="checkbox"
-            checked={downgradeDevScope}
-            onChange={(event) => setDowngradeDevScope(event.target.checked)}
+      <CheckboxField checked={downgradeDevScope} onChange={setDowngradeDevScope}>
+        {t('policy.downgradeDevScope')}
+      </CheckboxField>
+
+      <div className="form-grid">
+        <FormField label={t('policy.effectiveFrom')}>
+          <TextInput type="date" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)} required />
+        </FormField>
+        <FormField label={t('policy.notes')} className="field-wide">
+          <TextInput
+            value={notes}
+            placeholder={t('policy.notesPlaceholder')}
+            onChange={(event) => setNotes(event.target.value)}
           />
-          {t('policy.downgradeDevScope')}
-        </label>
-      </fieldset>
-
-      <div className="field-row">
-        <label htmlFor="effective-from">{t('policy.effectiveFrom')}</label>
-        <input
-          id="effective-from"
-          type="date"
-          value={effectiveFrom}
-          onChange={(event) => setEffectiveFrom(event.target.value)}
-          required
-        />
-      </div>
-
-      <div className="field-row">
-        <label htmlFor="policy-notes">{t('policy.notes')}</label>
-        <input
-          id="policy-notes"
-          type="text"
-          value={notes}
-          placeholder={t('policy.notesPlaceholder')}
-          onChange={(event) => setNotes(event.target.value)}
-        />
+        </FormField>
       </div>
 
       <div className="form-actions">
-        <button type="submit" disabled={publishMutation.isPending}>
+        <Button type="submit" variant="primary" disabled={publishMutation.isPending}>
           {publishMutation.isPending ? t('common.saving') : t('policy.publish')}
-        </button>
+        </Button>
         {published !== null && (
           <span className="form-success" role="status">
             {t('policy.published', { version: published })}
@@ -379,11 +364,9 @@ function RuleTester() {
         {t('policy.testerSection')}
       </h2>
       <p className="field-hint">{t('policy.testerHint')}</p>
-      <form className="filter-bar" onSubmit={handleEvaluate}>
-        <div className="filter-group">
-          <label htmlFor="test-cvss">CVSS</label>
-          <input
-            id="test-cvss"
+      <form className="card card-pad toolbar" onSubmit={handleEvaluate}>
+        <FormField label="CVSS">
+          <TextInput
             type="number"
             className="input-numeric mono"
             step="0.1"
@@ -392,11 +375,9 @@ function RuleTester() {
             value={cvss}
             onChange={(event) => setCvss(event.target.value)}
           />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="test-epss">EPSS</label>
-          <input
-            id="test-epss"
+        </FormField>
+        <FormField label="EPSS">
+          <TextInput
             type="number"
             className="input-numeric mono"
             step="0.01"
@@ -405,28 +386,23 @@ function RuleTester() {
             value={epss}
             onChange={(event) => setEpss(event.target.value)}
           />
-        </div>
-        <div className="filter-group">
-          <label className="checkbox-row" htmlFor="test-kev">
-            <input
-              id="test-kev"
-              type="checkbox"
-              checked={kev}
-              onChange={(event) => setKev(event.target.checked)}
-            />
-            CISA KEV
-          </label>
-        </div>
-        <div className="filter-group">
-          <label htmlFor="test-scope">{t('findings.dependencyScope')}</label>
-          <select id="test-scope" value={scope} onChange={(event) => setScope(event.target.value)}>
-            <option value="production">production</option>
-            <option value="development">development</option>
-          </select>
-        </div>
-        <button type="submit" disabled={mutation.isPending}>
+        </FormField>
+        <FormField label={t('findings.dependencyScope')}>
+          <SelectBox
+            value={scope}
+            onChange={setScope}
+            options={[
+              { value: 'production', label: 'production' },
+              { value: 'development', label: 'development' },
+            ]}
+          />
+        </FormField>
+        <CheckboxField checked={kev} onChange={setKev}>
+          CISA KEV
+        </CheckboxField>
+        <Button type="submit" variant="primary" disabled={mutation.isPending}>
           {t('policy.evaluate')}
-        </button>
+        </Button>
       </form>
 
       {result && (

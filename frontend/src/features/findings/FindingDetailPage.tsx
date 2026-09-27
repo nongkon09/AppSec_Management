@@ -1,13 +1,15 @@
 /**
  * Finding detail + remediation plan (Requirement.md FR-10.2, FR-10.5, UXR-5, UXR-7).
  *
- * The breadcrumb spells out the full Application > Version > Component > Finding path
- * required by UXR-5, and "back to backlog" keeps the query string so the user returns to
- * the filtered list they came from rather than a reset one.
+ * The page leads with what the owning team needs to act — severity, due date, how to fix
+ * and the remediation plan — and folds the AppSec-oriented detail (scores, VEX, Waivers,
+ * tickets) into disclosure rows, each with a one-line summary so nothing is hidden
+ * without a hint of what is inside.
  *
- * The plan form follows UXR-7: inline validation, an error summary that takes focus on a
- * failed submit, and a submit button disabled while in flight so a double click cannot
- * write the plan twice.
+ * The breadcrumb spells out the full Application > Version > Component > Finding path
+ * required by UXR-5, and "back" keeps the query string so the user returns to the
+ * filtered list they came from. Forms follow UXR-7: inline error summary that takes focus,
+ * submit disabled while in flight, and dialogs that return focus to their trigger.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
@@ -15,9 +17,12 @@ import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { SeverityBadge, SlaBadge } from '../../components/SeverityBadge'
-import { useAuth } from '../auth/context'
-import { IconChevronRight, IconExternal } from '../../lib/icons'
+import { Button, ConfirmDialog, DisclosureRow, ErrorSummary, FormField, InfoTip, Modal, SelectBox, TextArea, TextInput } from '../../components/ui'
+import { apiErrorMessage } from '../../lib/ui-helpers'
+import { formatDate, formatDateTime } from '../../lib/format'
+import { IconChevronRight, IconExternal, IconPlus } from '../../lib/icons'
 import { can } from '../../lib/rbac'
+import { useAuth } from '../auth/context'
 import { listConnectors } from '../settings/integrationApi'
 import {
   approveWaiver,
@@ -31,16 +36,11 @@ import {
   updateRemediationPlan,
   updateVexStatus,
 } from './api'
-import type { VexStatus } from './types'
+import { findingLabel } from './labels'
+import type { Finding, VexStatus, Waiver } from './types'
 
 const VEX_STATUSES: VexStatus[] = ['affected', 'not_affected', 'fixed', 'under_investigation']
-
 const MAX_PLAN_LENGTH = 10_000
-
-function formatDateTime(value: string | null): string {
-  if (!value) return '—'
-  return new Date(value).toLocaleString()
-}
 
 export function FindingDetailPage() {
   const { t } = useTranslation()
@@ -54,11 +54,9 @@ export function FindingDetailPage() {
     enabled: Boolean(findingId),
   })
 
-  const canEdit = can(user?.role, 'editRemediationPlan')
-
   if (isLoading) {
     return (
-      <div className="page">
+      <div className="page page-narrow">
         <p role="status">{t('common.loading')}</p>
       </div>
     )
@@ -66,7 +64,7 @@ export function FindingDetailPage() {
 
   if (isError || !finding) {
     return (
-      <div className="page">
+      <div className="page page-narrow">
         <p className="form-error" role="alert">
           {t('findings.notFound')}
         </p>
@@ -76,16 +74,15 @@ export function FindingDetailPage() {
   }
 
   const heading = finding.cve_id ?? finding.title ?? t('findings.untitled')
+  const canEdit = can(user?.role, 'editRemediationPlan')
 
   return (
-    <div className="page">
+    <div className="page page-narrow">
       {/* UXR-5: full drill-down path, shown whenever the user is more than two levels deep. */}
       <nav className="breadcrumb" aria-label={t('common.breadcrumb')}>
         <Link to="/findings">{t('nav.findings')}</Link>
         <IconChevronRight />
-        <Link to={`/findings?application_id=${finding.application_id}`}>
-          {finding.application_name}
-        </Link>
+        <Link to={`/findings?application_id=${finding.application_id}`}>{finding.application_name}</Link>
         <IconChevronRight />
         <span>{finding.version_label}</span>
         {finding.component_name && (
@@ -95,132 +92,180 @@ export function FindingDetailPage() {
           </>
         )}
         <IconChevronRight />
-        <span aria-current="page">{heading}</span>
+        <span aria-current="page">{findingLabel(finding)}</span>
       </nav>
 
-      <div className="detail-header">
-        <h1>
-          {heading}
-          {finding.kev_flag && <span className="chip chip-kev">KEV</span>}
-        </h1>
-        <div className="detail-header-chips">
+      <header className="detail-header">
+        <div className="inline">
           <SeverityBadge tier={finding.severity_tier} />
-          <SlaBadge
-            isOverdue={finding.is_overdue}
-            dueDate={finding.due_date}
-            daysUntilDue={finding.days_until_due}
-          />
+          <SlaBadge isOverdue={finding.is_overdue} dueDate={finding.due_date} daysUntilDue={finding.days_until_due} />
+          {finding.kev_flag && (
+            <span className="chip chip-kev" title={t('findings.kevTooltip')}>
+              {t('findings.kevChip')}
+            </span>
+          )}
+          <span className="chip chip-neutral">{t(`findings.statusValue.${finding.status}`)}</span>
         </div>
-      </div>
+        <h1>{heading}</h1>
+        <p className="detail-subtitle">
+          {[finding.cve_id ? finding.title : null, `${finding.application_name} ${finding.version_label}`, finding.owner_team]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+      </header>
 
-      {finding.title && finding.cve_id && <p className="detail-subtitle">{finding.title}</p>}
+      <FixCallout finding={finding} />
+
       {finding.description && <p>{finding.description}</p>}
 
-      <section aria-labelledby="detail-facts-heading">
-        <h2 id="detail-facts-heading" className="section-title">
-          {t('findings.detailsSection')}
-        </h2>
-        <dl className="detail-grid">
-          <div>
-            <dt>{t('findings.source')}</dt>
-            <dd>{finding.source.toUpperCase()}</dd>
-          </div>
-          <div>
-            <dt>{t('findings.status')}</dt>
-            <dd>{t(`findings.statusValue.${finding.status}`)}</dd>
-          </div>
-          <div>
-            <dt>CVSS</dt>
-            <dd className="mono">{finding.cvss?.toFixed(1) ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>EPSS</dt>
-            <dd className="mono">
-              {finding.epss === null ? '—' : `${(finding.epss * 100).toFixed(1)}%`}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('findings.component')}</dt>
-            <dd className="mono">
-              {finding.component_name
-                ? `${finding.component_name} ${finding.component_version ?? ''}`
-                : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('findings.dependencyScope')}</dt>
-            <dd>{finding.component_scope ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>{t('findings.fixedVersion')}</dt>
-            <dd className="mono">{finding.fixed_version ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>{t('findings.dueDate')}</dt>
-            <dd className="mono">{finding.due_date ?? t('sla.bestEffort')}</dd>
-          </div>
-          <div>
-            <dt>{t('findings.firstDetected')}</dt>
-            <dd>{formatDateTime(finding.first_detected_at)}</dd>
-          </div>
-          <div>
-            {/* NFR Auditability: which policy version produced this tier and due date. */}
-            <dt>{t('findings.policyVersion')}</dt>
-            <dd>{finding.policy_version ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>{t('inventory.ownerTeam')}</dt>
-            <dd>{finding.owner_team}</dd>
-          </div>
-        </dl>
-
-        {finding.reference_url && (
-          <p>
-            <a href={finding.reference_url} target="_blank" rel="noreferrer noopener">
-              {t('findings.advisoryLink')} <IconExternal />
-            </a>
-          </p>
-        )}
-      </section>
-
-      <section aria-labelledby="plan-heading">
-        <h2 id="plan-heading" className="section-title">
-          {t('findings.remediationPlan')}
-        </h2>
-
-        {finding.remediation_plan_updated_by && (
-          <p className="detail-meta">
-            {t('findings.planUpdatedBy', {
-              user: finding.remediation_plan_updated_by,
-              at: formatDateTime(finding.remediation_plan_updated_at),
-            })}
-          </p>
-        )}
-
+      <section aria-labelledby="plan-heading" className="stack">
+        <div>
+          <h2 id="plan-heading" className="section-title">
+            {t('findings.remediationPlan')}
+          </h2>
+          {finding.remediation_plan_updated_by && (
+            <p className="detail-meta">
+              {t('findings.planUpdatedBy', {
+                user: finding.remediation_plan_updated_by,
+                at: formatDateTime(finding.remediation_plan_updated_at),
+              })}
+            </p>
+          )}
+        </div>
         {canEdit ? (
           // Keyed on the Finding, so moving to another Finding gives a fresh editor while
-          // saving this one does not remount it — a remount on save would wipe the draft
-          // and the success confirmation. No effect copies server state into the form.
-          <RemediationPlanForm
-            key={finding.id}
-            findingId={finding.id}
-            initialPlan={finding.remediation_plan ?? ''}
-          />
+          // saving this one does not remount it (which would wipe the draft and the
+          // success confirmation).
+          <RemediationPlanForm key={finding.id} findingId={finding.id} initialPlan={finding.remediation_plan ?? ''} />
         ) : (
           <p>{finding.remediation_plan ?? <span className="muted">{t('findings.noPlan')}</span>}</p>
         )}
       </section>
 
-      <VexSection findingId={finding.id} vexStatus={finding.vex_status} vexJustification={finding.vex_justification} />
+      <div className="disclosure-group">
+        <TechnicalDetails finding={finding} />
+        <VexSection findingId={finding.id} vexStatus={finding.vex_status} vexJustification={finding.vex_justification} />
+        <WaiverSection findingId={finding.id} findingStatus={finding.status} />
+        <TicketsSection findingId={finding.id} />
+      </div>
 
-      <WaiverSection findingId={finding.id} findingStatus={finding.status} />
-
-      <TicketsSection findingId={finding.id} />
-
-      <button type="button" className="button-secondary" onClick={() => navigate(-1)}>
-        {t('findings.backToBacklog')}
-      </button>
+      <div>
+        <Button onClick={() => navigate(-1)}>{t('findings.backToBacklog')}</Button>
+      </div>
     </div>
+  )
+}
+
+/**
+ * One plain sentence on how to fix, when the data supports one: a known fixed version for
+ * an SBOM component, else the vendor advisory. Pentest/SAST findings without either get
+ * nothing rather than a guess.
+ */
+function FixCallout({ finding }: { finding: Finding }) {
+  const { t } = useTranslation()
+
+  if (finding.fixed_version) {
+    return (
+      <section className="fix-callout" aria-label={t('findings.howToFix')}>
+        <span className="fix-callout-label">{t('findings.howToFix')}</span>
+        <span>
+          {finding.component_name
+            ? t('findings.fixUpgrade', {
+                component: finding.component_name,
+                from: finding.component_version ?? '?',
+                to: finding.fixed_version,
+              })
+            : t('findings.fixUpgradeGeneric', { to: finding.fixed_version })}
+          {finding.reference_url && (
+            <>
+              {' · '}
+              <a href={finding.reference_url} target="_blank" rel="noreferrer noopener">
+                {t('findings.advisoryLink')} <IconExternal />
+              </a>
+            </>
+          )}
+        </span>
+      </section>
+    )
+  }
+
+  if (finding.reference_url) {
+    return (
+      <section className="fix-callout" aria-label={t('findings.howToFix')}>
+        <span className="fix-callout-label">{t('findings.howToFix')}</span>
+        <a href={finding.reference_url} target="_blank" rel="noreferrer noopener">
+          {t('findings.advisoryLink')} <IconExternal />
+        </a>
+      </section>
+    )
+  }
+
+  return null
+}
+
+function TechnicalDetails({ finding }: { finding: Finding }) {
+  const { t } = useTranslation()
+  const scores = [
+    finding.cvss !== null ? `CVSS ${finding.cvss.toFixed(1)}` : null,
+    finding.epss !== null ? `EPSS ${(finding.epss * 100).toFixed(1)}%` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <DisclosureRow title={t('findings.detailsSection')} summary={<span className="mono">{scores || finding.source.toUpperCase()}</span>}>
+      <dl className="detail-grid">
+        <div>
+          <dt>{t('findings.source')}</dt>
+          <dd>{finding.source.toUpperCase()}</dd>
+        </div>
+        <div>
+          <dt>
+            CVSS
+            <InfoTip label={t('glossary.cvssLabel')}>{t('glossary.cvss')}</InfoTip>
+          </dt>
+          <dd className="mono">{finding.cvss?.toFixed(1) ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>
+            EPSS
+            <InfoTip label={t('glossary.epssLabel')}>{t('glossary.epss')}</InfoTip>
+          </dt>
+          <dd className="mono">{finding.epss === null ? '—' : `${(finding.epss * 100).toFixed(1)}%`}</dd>
+        </div>
+        <div>
+          <dt>Component</dt>
+          <dd className="mono">
+            {finding.component_name ? `${finding.component_name} ${finding.component_version ?? ''}` : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt>{t('findings.dependencyScope')}</dt>
+          <dd>{finding.component_scope ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>{t('findings.fixedVersion')}</dt>
+          <dd className="mono">{finding.fixed_version ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>{t('findings.dueDate')}</dt>
+          <dd>{finding.due_date ? formatDate(finding.due_date) : t('sla.bestEffort')}</dd>
+        </div>
+        <div>
+          <dt>{t('findings.firstDetected')}</dt>
+          <dd>{formatDateTime(finding.first_detected_at)}</dd>
+        </div>
+        <div>
+          {/* NFR Auditability: which policy version produced this tier and due date. */}
+          <dt>{t('findings.policyVersion')}</dt>
+          <dd>{finding.policy_version ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>{t('inventory.ownerTeam')}</dt>
+          <dd>{finding.owner_team}</dd>
+        </div>
+      </dl>
+    </DisclosureRow>
   )
 }
 
@@ -254,41 +299,35 @@ function VexSection({
   })
 
   return (
-    <section aria-labelledby="vex-heading">
-      <div className="page-head">
-        <h2 id="vex-heading" className="section-title">
-          {t('vex.sectionTitle')}
-        </h2>
-        {canManage && !editing && (
-          <button type="button" className="button-secondary" onClick={() => setEditing(true)}>
+    <DisclosureRow title="VEX" summary={<span className="mono">{vexStatus}</span>}>
+      <dl className="detail-grid">
+        <div>
+          <dt>{t('findings.vexStatus')}</dt>
+          <dd className="mono">{vexStatus}</dd>
+        </div>
+        <div>
+          <dt>{t('vex.justification')}</dt>
+          <dd>{vexJustification ?? <span className="muted">{t('vex.noJustification')}</span>}</dd>
+        </div>
+      </dl>
+      {canManage && (
+        <div>
+          <Button small onClick={() => setEditing(true)}>
             {t('vex.change')}
-          </button>
-        )}
-      </div>
-
-      {!editing && (
-        <dl className="detail-grid">
-          <div>
-            <dt>{t('findings.vexStatus')}</dt>
-            <dd>{t(`findings.vexValue.${vexStatus}`)}</dd>
-          </div>
-          <div>
-            <dt>{t('vex.justification')}</dt>
-            <dd>{vexJustification ?? <span className="muted">{t('vex.noJustification')}</span>}</dd>
-          </div>
-        </dl>
+          </Button>
+        </div>
       )}
-
-      {editing && (
+      <Modal open={editing} onClose={() => setEditing(false)} title={t('vex.change')}>
         <VexEditForm
           initialStatus={vexStatus}
           initialJustification={vexJustification ?? ''}
           isPending={mutation.isPending}
+          error={mutation.isError ? apiErrorMessage(mutation.error, t('vex.saveFailed')) : null}
           onCancel={() => setEditing(false)}
           onSubmit={(values) => mutation.mutate(values)}
         />
-      )}
-    </section>
+      </Modal>
+    </DisclosureRow>
   )
 }
 
@@ -296,12 +335,14 @@ function VexEditForm({
   initialStatus,
   initialJustification,
   isPending,
+  error,
   onCancel,
   onSubmit,
 }: {
   initialStatus: VexStatus
   initialJustification: string
   isPending: boolean
+  error: string | null
   onCancel: () => void
   onSubmit: (values: { vex_status: VexStatus; vex_justification: string | null }) => void
 }) {
@@ -315,40 +356,27 @@ function VexEditForm({
   }
 
   return (
-    <form className="card card-pad" onSubmit={handleSubmit} noValidate>
-      <div className="filter-bar">
-        <div className="filter-group">
-          <label htmlFor="vex-status">{t('findings.vexStatus')}</label>
-          <select
-            id="vex-status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as VexStatus)}
-          >
-            {VEX_STATUSES.map((value) => (
-              <option key={value} value={value}>
-                {t(`findings.vexValue.${value}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-group filter-group-grow">
-          <label htmlFor="vex-justification">{t('vex.justification')}</label>
-          <input
-            id="vex-justification"
-            type="text"
-            placeholder={t('vex.justificationPlaceholder')}
-            value={justification}
-            onChange={(e) => setJustification(e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="form-actions" style={{ marginTop: 'var(--space-3)' }}>
-        <button type="submit" disabled={isPending}>
+    <form onSubmit={handleSubmit} noValidate>
+      {error && <ErrorSummary title={t('vex.saveErrorSummary')} message={error} />}
+      <FormField label={t('findings.vexStatus')}>
+        <SelectBox
+          value={status}
+          onChange={setStatus}
+          options={VEX_STATUSES.map((value) => ({ value, label: <span className="mono">{value}</span> }))}
+        />
+      </FormField>
+      <FormField label={t('vex.justification')}>
+        <TextInput
+          value={justification}
+          placeholder={t('vex.justificationPlaceholder')}
+          onChange={(event) => setJustification(event.target.value)}
+        />
+      </FormField>
+      <div className="modal-actions">
+        <Button onClick={onCancel}>{t('common.cancel')}</Button>
+        <Button type="submit" variant="primary" disabled={isPending}>
           {isPending ? t('common.saving') : t('common.save')}
-        </button>
-        <button type="button" className="button-secondary" onClick={onCancel}>
-          {t('common.cancel')}
-        </button>
+        </Button>
       </div>
     </form>
   )
@@ -356,25 +384,17 @@ function VexEditForm({
 
 /**
  * Exception/Waiver workflow (FR-6.2): Dev/Tech Lead (or AppSec) requests, AppSec/Admin
- * approves, rejects, or revokes an active one. Auto-expiry runs server-side.
+ * approves, rejects, or revokes an active one. Auto-expiry runs server-side. Opens by
+ * default for approvers when a request is waiting on them.
  */
-function WaiverSection({
-  findingId,
-  findingStatus,
-}: {
-  findingId: string
-  findingStatus: string
-}) {
+function WaiverSection({ findingId, findingStatus }: { findingId: string; findingStatus: string }) {
   const { t } = useTranslation()
   const { user } = useAuth()
   const [showRequest, setShowRequest] = useState(false)
+  const [revoking, setRevoking] = useState<Waiver | null>(null)
   const queryClient = useQueryClient()
 
-  const {
-    data: waivers,
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data: waivers, isLoading, isError } = useQuery({
     queryKey: ['finding-waivers', findingId],
     queryFn: () => listWaivers(findingId),
   })
@@ -386,42 +406,48 @@ function WaiverSection({
 
   const approveMutation = useMutation({ mutationFn: approveWaiver, onSuccess: invalidate })
   const rejectMutation = useMutation({ mutationFn: rejectWaiver, onSuccess: invalidate })
-  const revokeMutation = useMutation({ mutationFn: revokeWaiver, onSuccess: invalidate })
+  const revokeMutation = useMutation({
+    mutationFn: revokeWaiver,
+    onSuccess: () => {
+      invalidate()
+      setRevoking(null)
+    },
+  })
 
   const canRequest = can(user?.role, 'requestWaiver')
   const canApprove = can(user?.role, 'approveWaiver')
   const hasOpenWaiver = waivers?.some((w) => w.status === 'pending' || w.status === 'active')
+  const hasPending = waivers?.some((w) => w.status === 'pending') ?? false
+  const latest = waivers?.[0]
+
+  // Waiting for the list keeps `defaultOpen` from being decided before we know about pending requests.
+  if (isLoading) {
+    return (
+      <DisclosureRow title={t('waivers.sectionTitle')} summary={t('common.loading')}>
+        <p role="status">{t('common.loading')}</p>
+      </DisclosureRow>
+    )
+  }
 
   return (
-    <section aria-labelledby="waiver-heading">
-      <div className="page-head">
-        <h2 id="waiver-heading" className="section-title">
-          {t('waivers.sectionTitle')}
-        </h2>
-        {canRequest && !showRequest && findingStatus === 'open' && !hasOpenWaiver && (
-          <button type="button" className="button-secondary" onClick={() => setShowRequest(true)}>
-            {t('waivers.requestWaiver')}
-          </button>
-        )}
-      </div>
+    <DisclosureRow
+      title={t('waivers.sectionTitle')}
+      summary={
+        latest ? (
+          <span className="chip chip-neutral">{t(`waivers.statusValue.${latest.status}`)}</span>
+        ) : (
+          t('waivers.none')
+        )
+      }
+      defaultOpen={canApprove && hasPending}
+    >
+      <p className="field-hint">{t('waivers.hint')}</p>
 
-      {showRequest && (
-        <RequestWaiverForm
-          findingId={findingId}
-          onDone={() => {
-            setShowRequest(false)
-            invalidate()
-          }}
-        />
-      )}
-
-      {isLoading && <p role="status">{t('common.loading')}</p>}
       {isError && (
         <p className="form-error" role="alert">
           {t('waivers.loadError')}
         </p>
       )}
-      {waivers && waivers.length === 0 && <p className="empty-state">{t('waivers.empty')}</p>}
 
       {waivers && waivers.length > 0 && (
         <div className="table-scroll">
@@ -443,39 +469,30 @@ function WaiverSection({
                     <span className="chip chip-neutral">{t(`waivers.statusValue.${waiver.status}`)}</span>
                   </td>
                   <td>{waiver.reason}</td>
-                  <td className="mono">{waiver.expiry_date}</td>
+                  <td className="nowrap">{formatDate(waiver.expiry_date)}</td>
                   <td>{waiver.requested_by}</td>
                   <td>{waiver.approved_by ?? '—'}</td>
                   {canApprove && (
                     <td>
                       {waiver.status === 'pending' && (
-                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                          <button
-                            type="button"
+                        <div className="inline">
+                          <Button
+                            small
+                            variant="primary"
                             disabled={approveMutation.isPending}
                             onClick={() => approveMutation.mutate(waiver.id)}
                           >
                             {t('waivers.approve')}
-                          </button>
-                          <button
-                            type="button"
-                            className="button-secondary"
-                            disabled={rejectMutation.isPending}
-                            onClick={() => rejectMutation.mutate(waiver.id)}
-                          >
+                          </Button>
+                          <Button small disabled={rejectMutation.isPending} onClick={() => rejectMutation.mutate(waiver.id)}>
                             {t('waivers.reject')}
-                          </button>
+                          </Button>
                         </div>
                       )}
                       {waiver.status === 'active' && (
-                        <button
-                          type="button"
-                          className="button-secondary"
-                          disabled={revokeMutation.isPending}
-                          onClick={() => revokeMutation.mutate(waiver.id)}
-                        >
+                        <Button small onClick={() => setRevoking(waiver)}>
                           {t('waivers.revoke')}
-                        </button>
+                        </Button>
                       )}
                     </td>
                   )}
@@ -485,11 +502,60 @@ function WaiverSection({
           </table>
         </div>
       )}
-    </section>
+
+      {(approveMutation.isError || rejectMutation.isError) && (
+        <p className="form-error" role="alert">
+          {apiErrorMessage(approveMutation.error ?? rejectMutation.error, t('waivers.decisionFailed'))}
+        </p>
+      )}
+
+      {canRequest && findingStatus === 'open' && !hasOpenWaiver && (
+        <div>
+          <Button small onClick={() => setShowRequest(true)}>
+            <IconPlus />
+            {t('waivers.requestWaiver')}
+          </Button>
+        </div>
+      )}
+
+      <Modal
+        open={showRequest}
+        onClose={() => setShowRequest(false)}
+        title={t('waivers.requestWaiver')}
+        description={t('waivers.hint')}
+      >
+        <RequestWaiverForm
+          findingId={findingId}
+          onCancel={() => setShowRequest(false)}
+          onDone={() => {
+            setShowRequest(false)
+            invalidate()
+          }}
+        />
+      </Modal>
+
+      <ConfirmDialog
+        open={revoking !== null}
+        onClose={() => setRevoking(null)}
+        onConfirm={() => revoking && revokeMutation.mutate(revoking.id)}
+        title={t('waivers.revokeConfirmTitle')}
+        description={t('waivers.revokeConfirmBody')}
+        confirmLabel={t('waivers.revoke')}
+        pending={revokeMutation.isPending}
+      />
+    </DisclosureRow>
   )
 }
 
-function RequestWaiverForm({ findingId, onDone }: { findingId: string; onDone: () => void }) {
+function RequestWaiverForm({
+  findingId,
+  onCancel,
+  onDone,
+}: {
+  findingId: string
+  onCancel: () => void
+  onDone: () => void
+}) {
   const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const [expiryDate, setExpiryDate] = useState('')
@@ -500,11 +566,6 @@ function RequestWaiverForm({ findingId, onDone }: { findingId: string; onDone: (
     mutationFn: () => requestWaiver(findingId, { reason: reason.trim(), expiry_date: expiryDate }),
     onSuccess: onDone,
   })
-
-  const serverErrorMessage =
-    mutation.isError &&
-    ((mutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-      t('waivers.createFailed'))
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -518,42 +579,22 @@ function RequestWaiverForm({ findingId, onDone }: { findingId: string; onDone: (
     mutation.mutate()
   }
 
+  const message = validationError ?? (mutation.isError ? apiErrorMessage(mutation.error, t('waivers.createFailed')) : null)
+
   return (
-    <form className="card card-pad" onSubmit={handleSubmit} noValidate style={{ marginBottom: 'var(--space-4)' }}>
-      {(validationError || serverErrorMessage) && (
-        <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-          <p>{t('waivers.createErrorSummary')}</p>
-          <ul>
-            <li>{validationError || serverErrorMessage}</li>
-          </ul>
-        </div>
-      )}
-
-      <label htmlFor="waiver-reason">{t('waivers.reason')}</label>
-      <textarea
-        id="waiver-reason"
-        rows={3}
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-      />
-
-      <div className="filter-group" style={{ marginTop: 'var(--space-3)' }}>
-        <label htmlFor="waiver-expiry">{t('waivers.expiryDate')}</label>
-        <input
-          id="waiver-expiry"
-          type="date"
-          value={expiryDate}
-          onChange={(e) => setExpiryDate(e.target.value)}
-        />
-      </div>
-
-      <div className="form-actions" style={{ marginTop: 'var(--space-3)' }}>
-        <button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? t('common.saving') : t('waivers.requestWaiver')}
-        </button>
-        <button type="button" className="button-secondary" onClick={onDone}>
-          {t('common.cancel')}
-        </button>
+    <form onSubmit={handleSubmit} noValidate>
+      {message && <ErrorSummary ref={errorSummaryRef} title={t('waivers.createErrorSummary')} message={message} />}
+      <FormField label={t('waivers.reason')}>
+        <TextArea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} invalid={Boolean(validationError) && !reason.trim()} />
+      </FormField>
+      <FormField label={t('waivers.expiryDate')}>
+        <TextInput type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} invalid={Boolean(validationError) && !expiryDate} />
+      </FormField>
+      <div className="modal-actions">
+        <Button onClick={onCancel}>{t('common.cancel')}</Button>
+        <Button type="submit" variant="primary" disabled={mutation.isPending}>
+          {mutation.isPending ? t('common.saving') : t('waivers.submitRequest')}
+        </Button>
       </div>
     </form>
   )
@@ -561,8 +602,8 @@ function RequestWaiverForm({ findingId, onDone }: { findingId: string; onDone: (
 
 /**
  * ITSM tickets cross-reference (FR-7.4) plus a manual "Create Ticket" action (FR-7.8)
- * for the edge cases automatic routing doesn't cover — an AppSec/Admin-only escape
- * hatch, gated by the same roles as the backend's `POST /findings/{id}/tickets`.
+ * for the edge cases automatic routing doesn't cover — AppSec/Admin only, matching the
+ * backend's `POST /findings/{id}/tickets`.
  */
 function TicketsSection({ findingId }: { findingId: string }) {
   const { t } = useTranslation()
@@ -570,48 +611,32 @@ function TicketsSection({ findingId }: { findingId: string }) {
   const [showCreate, setShowCreate] = useState(false)
   const queryClient = useQueryClient()
 
-  const {
-    data: tickets,
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data: tickets, isLoading, isError } = useQuery({
     queryKey: ['finding-tickets', findingId],
     queryFn: () => listFindingTickets(findingId),
   })
 
   const canCreate = can(user?.role, 'createTicket')
+  const first = tickets?.[0]
 
   return (
-    <section aria-labelledby="tickets-heading">
-      <div className="page-head">
-        <h2 id="tickets-heading" className="section-title">
-          {t('tickets.sectionTitle')}
-        </h2>
-        {canCreate && !showCreate && (
-          <button type="button" className="button-secondary" onClick={() => setShowCreate(true)}>
-            {t('tickets.createTicket')}
-          </button>
-        )}
-      </div>
-
-      {showCreate && (
-        <CreateTicketForm
-          findingId={findingId}
-          onDone={() => {
-            setShowCreate(false)
-            queryClient.invalidateQueries({ queryKey: ['finding-tickets', findingId] })
-          }}
-        />
-      )}
-
+    <DisclosureRow
+      title={t('tickets.sectionTitle')}
+      summary={
+        first ? (
+          <span className="mono">{[first.external_id, first.status].filter(Boolean).join(' · ')}</span>
+        ) : (
+          t('tickets.none')
+        )
+      }
+    >
       {isLoading && <p role="status">{t('common.loading')}</p>}
       {isError && (
         <p className="form-error" role="alert">
           {t('tickets.loadError')}
         </p>
       )}
-
-      {tickets && tickets.length === 0 && <p className="empty-state">{t('tickets.empty')}</p>}
+      {tickets && tickets.length === 0 && <p className="field-hint">{t('tickets.empty')}</p>}
 
       {tickets && tickets.length > 0 && (
         <div className="table-scroll">
@@ -634,18 +659,46 @@ function TicketsSection({ findingId }: { findingId: string }) {
                     <span className="chip chip-neutral">{ticket.status}</span>
                   </td>
                   <td>{ticket.last_error ?? '—'}</td>
-                  <td>{formatDateTime(ticket.created_at)}</td>
+                  <td className="nowrap">{formatDateTime(ticket.created_at)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-    </section>
+
+      {canCreate && (
+        <div>
+          <Button small onClick={() => setShowCreate(true)}>
+            <IconPlus />
+            {t('tickets.createTicket')}
+          </Button>
+        </div>
+      )}
+
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t('tickets.createTicket')}>
+        <CreateTicketForm
+          findingId={findingId}
+          onCancel={() => setShowCreate(false)}
+          onDone={() => {
+            setShowCreate(false)
+            queryClient.invalidateQueries({ queryKey: ['finding-tickets', findingId] })
+          }}
+        />
+      </Modal>
+    </DisclosureRow>
   )
 }
 
-function CreateTicketForm({ findingId, onDone }: { findingId: string; onDone: () => void }) {
+function CreateTicketForm({
+  findingId,
+  onCancel,
+  onDone,
+}: {
+  findingId: string
+  onCancel: () => void
+  onDone: () => void
+}) {
   const { t } = useTranslation()
   const [connectorId, setConnectorId] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -661,11 +714,6 @@ function CreateTicketForm({ findingId, onDone }: { findingId: string; onDone: ()
     onSuccess: onDone,
   })
 
-  const serverErrorMessage =
-    mutation.isError &&
-    ((mutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-      t('tickets.createFailed'))
-
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     mutation.reset()
@@ -678,41 +726,25 @@ function CreateTicketForm({ findingId, onDone }: { findingId: string; onDone: ()
     mutation.mutate()
   }
 
+  const message = validationError ?? (mutation.isError ? apiErrorMessage(mutation.error, t('tickets.createFailed')) : null)
+
   return (
-    <form className="card card-pad" onSubmit={handleSubmit} noValidate style={{ marginBottom: 'var(--space-4)' }}>
-      {(validationError || serverErrorMessage) && (
-        <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-          <p>{t('tickets.createErrorSummary')}</p>
-          <ul>
-            <li>{validationError || serverErrorMessage}</li>
-          </ul>
-        </div>
-      )}
-
-      <div className="filter-group">
-        <label htmlFor="ticket-connector">{t('integrations.name')}</label>
-        <select
-          id="ticket-connector"
+    <form onSubmit={handleSubmit} noValidate>
+      {message && <ErrorSummary ref={errorSummaryRef} title={t('tickets.createErrorSummary')} message={message} />}
+      <FormField label={t('tickets.connector')}>
+        <SelectBox
           value={connectorId}
-          onChange={(e) => setConnectorId(e.target.value)}
+          onChange={setConnectorId}
           disabled={isLoading}
-        >
-          <option value="">{t('tickets.selectConnector')}</option>
-          {connectors?.map((connector) => (
-            <option key={connector.id} value={connector.id}>
-              {connector.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-actions" style={{ marginTop: 'var(--space-3)' }}>
-        <button type="submit" disabled={mutation.isPending}>
+          placeholder={t('tickets.selectConnector')}
+          options={(connectors ?? []).map((connector) => ({ value: connector.id, label: connector.name }))}
+        />
+      </FormField>
+      <div className="modal-actions">
+        <Button onClick={onCancel}>{t('common.cancel')}</Button>
+        <Button type="submit" variant="primary" disabled={mutation.isPending}>
           {mutation.isPending ? t('common.saving') : t('tickets.createTicket')}
-        </button>
-        <button type="button" className="button-secondary" onClick={onDone}>
-          {t('common.cancel')}
-        </button>
+        </Button>
       </div>
     </form>
   )
@@ -721,16 +753,10 @@ function CreateTicketForm({ findingId, onDone }: { findingId: string; onDone: ()
 /**
  * Remediation plan editor (FR-10.2, UXR-7).
  *
- * Owns only its draft text. The parent remounts it whenever the saved plan changes, so
- * server state stays the single source of truth without an effect copying it down.
+ * Owns only its draft text. The parent remounts it when the Finding changes, so server
+ * state stays the single source of truth without an effect copying it down.
  */
-function RemediationPlanForm({
-  findingId,
-  initialPlan,
-}: {
-  findingId: string
-  initialPlan: string
-}) {
+function RemediationPlanForm({ findingId, initialPlan }: { findingId: string; initialPlan: string }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [plan, setPlan] = useState(initialPlan)
@@ -762,41 +788,33 @@ function RemediationPlanForm({
   }
 
   return (
-    <form className="plan-form" onSubmit={handleSubmit} noValidate>
+    <form className="stack" onSubmit={handleSubmit} noValidate>
       {(validationError || mutation.isError) && (
-        <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-          <p>{t('findings.planErrorSummary')}</p>
-          <ul>
-            <li>
-              <a href="#remediation-plan">{validationError ?? t('findings.planSaveFailed')}</a>
-            </li>
-          </ul>
-        </div>
+        <ErrorSummary
+          ref={errorSummaryRef}
+          title={t('findings.planErrorSummary')}
+          message={<a href="#remediation-plan">{validationError ?? t('findings.planSaveFailed')}</a>}
+        />
       )}
-
-      <label htmlFor="remediation-plan">{t('findings.planLabel')}</label>
-      <textarea
-        id="remediation-plan"
-        value={plan}
-        rows={5}
-        maxLength={MAX_PLAN_LENGTH}
-        aria-invalid={validationError ? true : undefined}
-        aria-describedby="remediation-plan-hint"
-        onChange={(event) => {
-          setPlan(event.target.value)
-          setValidationError(null)
-          setSaved(false)
-        }}
-      />
-      <p id="remediation-plan-hint" className="field-hint">
-        {t('findings.planHint')}
-      </p>
-
+      <FormField label={t('findings.planLabel')} hint={t('findings.planHint')}>
+        <TextArea
+          id="remediation-plan"
+          value={plan}
+          rows={4}
+          maxLength={MAX_PLAN_LENGTH}
+          invalid={Boolean(validationError)}
+          onChange={(event) => {
+            setPlan(event.target.value)
+            setValidationError(null)
+            setSaved(false)
+          }}
+        />
+      </FormField>
       <div className="form-actions">
         {/* UXR-7: disabled while in flight, so a second click cannot duplicate the write. */}
-        <button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? t('common.saving') : t('common.save')}
-        </button>
+        <Button type="submit" variant="primary" disabled={mutation.isPending}>
+          {mutation.isPending ? t('common.saving') : t('findings.savePlan')}
+        </Button>
         {saved && (
           <span className="form-success" role="status">
             {t('findings.planSaved')}

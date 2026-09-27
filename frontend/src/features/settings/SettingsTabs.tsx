@@ -9,16 +9,16 @@ import { NavLink } from 'react-router-dom'
 export function SettingsTabs() {
   const { t } = useTranslation()
   return (
-    <nav className="settings-tabs" aria-label={t('settings.tabsLabel')}>
+    <nav className="route-tabs" aria-label={t('settings.tabsLabel')}>
       <NavLink
         to="/settings/users"
-        className={({ isActive }) => (isActive ? 'settings-tab active' : 'settings-tab')}
+        className={({ isActive }) => (isActive ? 'route-tab active' : 'route-tab')}
       >
         {t('nav.settingsUsers')}
       </NavLink>
       <NavLink
         to="/settings/integrations"
-        className={({ isActive }) => (isActive ? 'settings-tab active' : 'settings-tab')}
+        className={({ isActive }) => (isActive ? 'route-tab active' : 'route-tab')}
       >
         {t('nav.settingsIntegrations')}
       </NavLink>

@@ -8,6 +8,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Button, FormField, SelectBox, TextInput } from '../../components/ui'
+import { formatDateTime } from '../../lib/format'
 import { IconDownload } from '../../lib/icons'
 import { downloadAuditExport, listAuditLogs } from './api'
 import type { AuditFilters } from './api'
@@ -48,59 +50,51 @@ export function AuditTrailPage() {
 
   return (
     <div className="page">
-      <h1>{t('audit.title')}</h1>
-      <p className="field-hint">{t('audit.immutabilityNote')}</p>
+      <div className="page-head">
+        <div>
+          <h1>{t('audit.title')}</h1>
+          <p className="page-sub">{t('audit.immutabilityNote')}</p>
+        </div>
+        <Button onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>
+          <IconDownload />
+          {exportMutation.isPending ? t('common.saving') : t('audit.exportCsv')}
+        </Button>
+      </div>
 
-      <section className="filter-bar" aria-label={t('audit.filtersLabel')}>
-        <div className="filter-group">
-          <label htmlFor="audit-from">{t('audit.dateFrom')}</label>
-          <input
-            id="audit-from"
+      <section className="toolbar" aria-label={t('audit.filtersLabel')}>
+        <FormField label={t('audit.dateFrom')}>
+          <TextInput
             type="date"
             value={filters.date_from ?? ''}
             onChange={(event) => updateFilter('date_from', event.target.value)}
           />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="audit-to">{t('audit.dateTo')}</label>
-          <input
-            id="audit-to"
+        </FormField>
+        <FormField label={t('audit.dateTo')}>
+          <TextInput
             type="date"
             value={filters.date_to ?? ''}
             onChange={(event) => updateFilter('date_to', event.target.value)}
           />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="audit-entity">{t('audit.entityType')}</label>
-          <select
-            id="audit-entity"
+        </FormField>
+        <FormField label={t('audit.entityType')}>
+          <SelectBox
             value={filters.entity_type ?? ''}
-            onChange={(event) => updateFilter('entity_type', event.target.value)}
-          >
-            <option value="">{t('audit.allEntities')}</option>
-            <option value="policy_set">policy_set</option>
-            <option value="finding">finding</option>
-            <option value="application">application</option>
-          </select>
-        </div>
-        <div className="filter-group filter-group-grow">
-          <label htmlFor="audit-actor">{t('audit.actor')}</label>
-          <input
-            id="audit-actor"
+            onChange={(value) => updateFilter('entity_type', value)}
+            options={[
+              { value: '', label: t('audit.allEntities') },
+              { value: 'policy_set', label: 'policy_set' },
+              { value: 'finding', label: 'finding' },
+              { value: 'application', label: 'application' },
+            ]}
+          />
+        </FormField>
+        <FormField label={t('audit.actor')} className="toolbar-grow">
+          <TextInput
             type="search"
             value={filters.actor ?? ''}
             onChange={(event) => updateFilter('actor', event.target.value)}
           />
-        </div>
-        <button
-          type="button"
-          className="button-secondary"
-          onClick={() => exportMutation.mutate()}
-          disabled={exportMutation.isPending}
-        >
-          <IconDownload />
-          {exportMutation.isPending ? t('common.saving') : t('audit.exportCsv')}
-        </button>
+        </FormField>
       </section>
 
       {isLoading && <p role="status">{t('common.loading')}</p>}
@@ -138,7 +132,7 @@ export function AuditTrailPage() {
                 <tbody>
                   {data.items.map((entry) => (
                     <tr key={entry.id}>
-                      <td className="mono">{new Date(entry.timestamp).toLocaleString()}</td>
+                      <td className="nowrap">{formatDateTime(entry.timestamp)}</td>
                       <td>{entry.actor}</td>
                       <td className="mono">{entry.action}</td>
                       <td className="mono">

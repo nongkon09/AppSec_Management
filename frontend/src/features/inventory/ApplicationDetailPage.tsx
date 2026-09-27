@@ -4,11 +4,17 @@
  * FR-6.5.3 calls for so Dev Team sees their own Application's Pentest state without a
  * separate Pentest-specific screen.
  */
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
+import { Button, ErrorSummary, FormField, Modal, SelectBox, TextInput } from '../../components/ui'
+import { apiErrorMessage, buttonClass } from '../../lib/ui-helpers'
+import { formatDateTime } from '../../lib/format'
+import { IconAlertCircle, IconChevronDown, IconPlus, IconUpload, IconWithinSla } from '../../lib/icons'
+import { can } from '../../lib/rbac'
 import { useAuth } from '../auth/context'
 import { approveGoLive, getGoLiveChecklist, getGoLiveHistory } from '../golive/api'
 import {
@@ -21,8 +27,6 @@ import {
   uploadPentestReportFile,
 } from '../pentest/api'
 import type { EngagementType, PentestStatus } from '../pentest/types'
-import { IconAlertCircle, IconPlus, IconWithinSla } from '../../lib/icons'
-import { can } from '../../lib/rbac'
 import { getApplication, listAppVersions } from './api'
 
 function GateStatus({ pass, label }: { pass: boolean; label: string }) {
@@ -53,10 +57,7 @@ export function ApplicationDetailPage() {
   })
 
   const versionId =
-    selectedVersionId ??
-    versions?.find((v) => v.is_current_production)?.id ??
-    versions?.[0]?.id ??
-    null
+    selectedVersionId ?? versions?.find((v) => v.is_current_production)?.id ?? versions?.[0]?.id ?? null
 
   if (appLoading || versionsLoading) {
     return (
@@ -81,41 +82,41 @@ export function ApplicationDetailPage() {
     <div className="page">
       <div className="page-head">
         <div>
-          <h1 className="page-title">{application.app_name}</h1>
-          <div className="page-sub">
-            {t('inventory.ownerTeam')}: {application.owner_team}
-          </div>
+          <h1>{application.app_name}</h1>
+          <p className="page-sub">
+            {[
+              t(`inventory.appTypeValue.${application.app_type}`),
+              `${t('inventory.ownerTeam')}: ${application.owner_team}`,
+              application.internet_facing ? t('inventory.internetFacing') : t('inventory.internal'),
+            ].join(' · ')}
+          </p>
         </div>
-        <Link to={`/findings?application_id=${application.id}`} className="button-secondary">
-          {t('inventory.viewBacklog')}
-        </Link>
+        <div className="toolbar">
+          {versions && versions.length > 0 && (
+            <FormField label={t('inventory.versionLabel')}>
+              <SelectBox
+                value={versionId ?? ''}
+                onChange={setSelectedVersionId}
+                options={versions.map((v) => ({
+                  value: v.id,
+                  label: v.is_current_production
+                    ? `${v.version_label} (${t('inventory.currentProduction')})`
+                    : v.version_label,
+                }))}
+              />
+            </FormField>
+          )}
+          <Link to={`/findings?application_id=${application.id}`} className={buttonClass('secondary')}>
+            {t('inventory.viewBacklog')}
+          </Link>
+        </div>
       </div>
-
-      {versions && versions.length > 0 && (
-        <div className="filter-group">
-          <label htmlFor="version-select">{t('inventory.versionLabel')}</label>
-          <select
-            id="version-select"
-            value={versionId ?? ''}
-            onChange={(e) => setSelectedVersionId(e.target.value)}
-          >
-            {versions.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.version_label}
-                {v.is_current_production ? ` (${t('inventory.currentProduction')})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {!versionId && <p className="empty-state">{t('inventory.noVersions')}</p>}
 
       {versionId && can(user?.role, 'viewGoLiveGate') && <GoLiveGateSection versionId={versionId} />}
 
-      {versionId && can(user?.role, 'viewPentestProjects') && (
-        <PentestProjectsSection versionId={versionId} />
-      )}
+      {versionId && can(user?.role, 'viewPentestProjects') && <PentestProjectsSection versionId={versionId} />}
     </div>
   )
 }
@@ -143,41 +144,34 @@ function GoLiveGateSection({ versionId }: { versionId: string }) {
   })
 
   return (
-    <section aria-labelledby="golive-heading" className="card card-pad">
-      <div className="page-head">
+    <section aria-labelledby="golive-heading" className="card card-pad stack">
+      <div className="section-head">
         <h2 id="golive-heading" className="section-title">
           {t('golive.sectionTitle')}
         </h2>
         {canApprove && checklist && (
-          <button
-            type="button"
+          <Button
+            variant="primary"
             disabled={!checklist.ready || mutation.isPending}
             title={!checklist.ready ? t('golive.notReadyTooltip') : undefined}
             onClick={() => mutation.mutate()}
           >
             {mutation.isPending ? t('common.saving') : t('golive.approve')}
-          </button>
+          </Button>
         )}
       </div>
 
       {isLoading && <p role="status">{t('common.loading')}</p>}
       {mutation.isError && (
         <p className="form-error" role="alert">
-          {(mutation.error as { response?: { data?: { detail?: string } } })?.response?.data
-            ?.detail ?? t('golive.approveFailed')}
+          {apiErrorMessage(mutation.error, t('golive.approveFailed'))}
         </p>
       )}
 
       {checklist && (
-        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-          <GateStatus
-            pass={checklist.sbom_pass}
-            label={`${t('golive.sbom')} (${checklist.sbom_blocking_count})`}
-          />
-          <GateStatus
-            pass={checklist.sast_pass}
-            label={`${t('golive.sast')} (${checklist.sast_blocking_count})`}
-          />
+        <div className="inline">
+          <GateStatus pass={checklist.sbom_pass} label={`${t('golive.sbom')} (${checklist.sbom_blocking_count})`} />
+          <GateStatus pass={checklist.sast_pass} label={`${t('golive.sast')} (${checklist.sast_blocking_count})`} />
           {checklist.pentest_required ? (
             <GateStatus
               pass={checklist.pentest_pass}
@@ -188,9 +182,10 @@ function GoLiveGateSection({ versionId }: { versionId: string }) {
           )}
         </div>
       )}
+      {checklist && <p className="field-hint">{t('golive.countHint')}</p>}
 
       {history && history.length > 0 && (
-        <div className="table-scroll" style={{ marginTop: 'var(--space-4)' }}>
+        <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
@@ -203,7 +198,7 @@ function GoLiveGateSection({ versionId }: { versionId: string }) {
               {history.map((approval) => (
                 <tr key={approval.id}>
                   <td>{approval.approver}</td>
-                  <td>{new Date(approval.created_at).toLocaleString()}</td>
+                  <td>{formatDateTime(approval.created_at)}</td>
                   <td>{approval.is_break_glass ? t('common.yes') : t('common.no')}</td>
                 </tr>
               ))}
@@ -233,8 +228,7 @@ function PentestProjectsSection({ versionId }: { versionId: string }) {
   }
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: PentestStatus }) =>
-      changePentestStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: PentestStatus }) => changePentestStatus(id, status),
     onSuccess: invalidate,
   })
 
@@ -254,31 +248,26 @@ function PentestProjectsSection({ versionId }: { versionId: string }) {
   }
 
   return (
-    <section aria-labelledby="pentest-heading" style={{ marginTop: 'var(--space-5)' }}>
-      <div className="page-head">
+    <section aria-labelledby="pentest-heading">
+      <div className="section-head">
         <h2 id="pentest-heading" className="section-title">
           {t('pentest.sectionTitle')}
         </h2>
-        {canManage && !showCreate && (
-          <button type="button" className="button-secondary" onClick={() => setShowCreate(true)}>
+        {canManage && (
+          <Button small onClick={() => setShowCreate(true)}>
             <IconPlus />
             {t('pentest.newProject')}
-          </button>
+          </Button>
         )}
       </div>
 
-      {showCreate && (
-        <CreatePentestProjectForm
-          versionId={versionId}
-          onDone={() => {
-            setShowCreate(false)
-            invalidate()
-          }}
-        />
-      )}
-
       {isLoading && <p role="status">{t('common.loading')}</p>}
       {projects && projects.length === 0 && <p className="empty-state">{t('pentest.empty')}</p>}
+      {(statusMutation.isError || uploadMutation.isError) && (
+        <p className="form-error" role="alert">
+          {apiErrorMessage(statusMutation.error ?? uploadMutation.error, t('pentest.updateFailed'))}
+        </p>
+      )}
 
       {projects && projects.length > 0 && (
         <div className="table-scroll">
@@ -295,97 +284,105 @@ function PentestProjectsSection({ versionId }: { versionId: string }) {
               </tr>
             </thead>
             <tbody>
-              {projects.map((project) => (
-                <tr key={project.id}>
-                  <td>
-                    <span className="chip chip-neutral">
-                      {t(`pentest.statusValue.${project.status}`)}
-                    </span>
-                  </td>
-                  <td>{t(`pentest.engagementValue.${project.engagement_type}`)}</td>
-                  <td>{project.vendor_name ?? project.tester_name ?? '—'}</td>
-                  {canSeeCost && (
-                    <td className="mono">
-                      {project.cost ? `${project.cost} ${project.currency ?? ''}` : '—'}
-                    </td>
-                  )}
-                  <td>
-                    {project.retest_owner ?? '—'}
-                    {project.retest_overdue && (
-                      <span className="chip chip-sla-overdue" style={{ marginLeft: 'var(--space-2)' }}>
-                        <IconAlertCircle />
-                        {t('pentest.retestOverdue')}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    {project.report_file_url ? (
-                      <button
-                        type="button"
-                        className="button-secondary"
-                        onClick={() => handleDownload(project.id)}
-                      >
-                        {t('common.download')}
-                      </button>
-                    ) : canManage ? (
-                      <label className="button-secondary" style={{ cursor: 'pointer' }}>
-                        {uploadMutation.isPending ? t('common.saving') : t('pentest.uploadReport')}
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          style={{ display: 'none' }}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) uploadMutation.mutate({ id: project.id, file })
-                          }}
-                        />
-                      </label>
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                  </td>
-                  {canManage && (
+              {projects.map((project) => {
+                const nextStatuses = allowedNextStatuses(project.status)
+                return (
+                  <tr key={project.id}>
                     <td>
-                      {allowedNextStatuses(project.status).length > 0 ? (
-                        <select
-                          value=""
-                          disabled={statusMutation.isPending}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              statusMutation.mutate({
-                                id: project.id,
-                                status: e.target.value as PentestStatus,
-                              })
-                            }
-                          }}
-                        >
-                          <option value="">{t('pentest.changeStatus')}</option>
-                          {allowedNextStatuses(project.status).map((s) => (
-                            <option key={s} value={s}>
-                              {t(`pentest.statusValue.${s}`)}
-                            </option>
-                          ))}
-                        </select>
+                      <span className="chip chip-neutral">{t(`pentest.statusValue.${project.status}`)}</span>
+                    </td>
+                    <td>{t(`pentest.engagementValue.${project.engagement_type}`)}</td>
+                    <td>{project.vendor_name ?? project.tester_name ?? '—'}</td>
+                    {canSeeCost && (
+                      <td className="mono">{project.cost ? `${project.cost} ${project.currency ?? ''}` : '—'}</td>
+                    )}
+                    <td>
+                      {project.retest_owner ?? '—'}
+                      {project.retest_overdue && (
+                        <span className="chip chip-sla-overdue gap-left">
+                          <IconAlertCircle />
+                          {t('pentest.retestOverdue')}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {project.report_file_url ? (
+                        <Button small onClick={() => handleDownload(project.id)}>
+                          {t('common.download')}
+                        </Button>
+                      ) : canManage ? (
+                        <label className={`${buttonClass('secondary', true)} file-button`}>
+                          <IconUpload />
+                          {uploadMutation.isPending ? t('common.saving') : t('pentest.uploadReport')}
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) uploadMutation.mutate({ id: project.id, file })
+                            }}
+                          />
+                        </label>
                       ) : (
                         <span className="muted">—</span>
                       )}
                     </td>
-                  )}
-                </tr>
-              ))}
+                    {canManage && (
+                      <td>
+                        {nextStatuses.length > 0 ? (
+                          <Menu>
+                            <MenuButton className={buttonClass('secondary', true)} disabled={statusMutation.isPending}>
+                              {t('pentest.changeStatus')}
+                              <IconChevronDown />
+                            </MenuButton>
+                            <MenuItems anchor={{ to: 'bottom end', gap: 4 }} transition className="popover-surface menu-items">
+                              {nextStatuses.map((status) => (
+                                <MenuItem key={status}>
+                                  <button
+                                    type="button"
+                                    className="menu-item"
+                                    onClick={() => statusMutation.mutate({ id: project.id, status })}
+                                  >
+                                    {t(`pentest.statusValue.${status}`)}
+                                  </button>
+                                </MenuItem>
+                              ))}
+                            </MenuItems>
+                          </Menu>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t('pentest.newProject')}>
+        <CreatePentestProjectForm
+          versionId={versionId}
+          onCancel={() => setShowCreate(false)}
+          onDone={() => {
+            setShowCreate(false)
+            invalidate()
+          }}
+        />
+      </Modal>
     </section>
   )
 }
 
 function CreatePentestProjectForm({
   versionId,
+  onCancel,
   onDone,
 }: {
   versionId: string
+  onCancel: () => void
   onDone: () => void
 }) {
   const { t } = useTranslation()
@@ -404,11 +401,6 @@ function CreatePentestProjectForm({
     onSuccess: onDone,
   })
 
-  const serverErrorMessage =
-    mutation.isError &&
-    ((mutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-      t('pentest.createFailed'))
-
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     mutation.reset()
@@ -421,57 +413,32 @@ function CreatePentestProjectForm({
     mutation.mutate()
   }
 
+  const message = validationError ?? (mutation.isError ? apiErrorMessage(mutation.error, t('pentest.createFailed')) : null)
+
   return (
-    <form
-      className="card card-pad"
-      onSubmit={handleSubmit}
-      noValidate
-      style={{ marginBottom: 'var(--space-4)' }}
-    >
-      {(validationError || serverErrorMessage) && (
-        <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-          <p>{t('pentest.createErrorSummary')}</p>
-          <ul>
-            <li>{validationError || serverErrorMessage}</li>
-          </ul>
-        </div>
+    <form onSubmit={handleSubmit} noValidate>
+      {message && <ErrorSummary ref={errorSummaryRef} title={t('pentest.createErrorSummary')} message={message} />}
+      <FormField label={t('pentest.engagementType')}>
+        <SelectBox
+          value={engagementType}
+          onChange={setEngagementType}
+          options={ENGAGEMENT_TYPES.map((type) => ({ value: type, label: t(`pentest.engagementValue.${type}`) }))}
+        />
+      </FormField>
+      {engagementType === 'vendor' && (
+        <FormField label={t('pentest.vendorName')}>
+          <TextInput
+            value={vendorName}
+            onChange={(e) => setVendorName(e.target.value)}
+            invalid={Boolean(validationError)}
+          />
+        </FormField>
       )}
-
-      <div className="filter-bar">
-        <div className="filter-group">
-          <label htmlFor="engagement-type">{t('pentest.engagementType')}</label>
-          <select
-            id="engagement-type"
-            value={engagementType}
-            onChange={(e) => setEngagementType(e.target.value as EngagementType)}
-          >
-            {ENGAGEMENT_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {t(`pentest.engagementValue.${type}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        {engagementType === 'vendor' && (
-          <div className="filter-group">
-            <label htmlFor="vendor-name">{t('pentest.vendorName')}</label>
-            <input
-              id="vendor-name"
-              type="text"
-              value={vendorName}
-              onChange={(e) => setVendorName(e.target.value)}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="form-actions" style={{ marginTop: 'var(--space-3)' }}>
-        <button type="submit" disabled={mutation.isPending}>
+      <div className="modal-actions">
+        <Button onClick={onCancel}>{t('common.cancel')}</Button>
+        <Button type="submit" variant="primary" disabled={mutation.isPending}>
           {mutation.isPending ? t('common.saving') : t('pentest.createProject')}
-        </button>
-        <button type="button" className="button-secondary" onClick={onDone}>
-          {t('common.cancel')}
-        </button>
+        </Button>
       </div>
     </form>
   )

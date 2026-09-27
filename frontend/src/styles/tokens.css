@@ -83,7 +83,7 @@
 
   /* Typography — IBM Plex pairing: a clean, technical sans with a matching mono for
    * CVSS/EPSS/SLA figures, so numbers line up and compare at a glance (UXR-1). */
-  --font-sans: "IBM Plex Sans", -apple-system, "Segoe UI", "Noto Sans Thai", Roboto, sans-serif;
+  --font-sans: "IBM Plex Sans", "IBM Plex Sans Thai", -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -99,6 +99,7 @@
   --radius-full: 999px;
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px oklch(0 0 0 / 0.06);
   --shadow-md: 0 12px 32px oklch(0 0 0 / 0.12);
+  --color-overlay: oklch(0.2 0.02 262 / 0.45);
 }
 
 :root[data-theme="dark"] {
@@ -154,6 +155,7 @@
 
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.5), 0 8px 24px oklch(0 0 0 / 0.28);
   --shadow-md: 0 12px 32px oklch(0 0 0 / 0.45);
+  --color-overlay: oklch(0 0 0 / 0.6);
 }
 
 * {

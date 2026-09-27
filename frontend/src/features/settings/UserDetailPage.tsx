@@ -6,11 +6,12 @@ import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
+import { Button, ErrorSummary, FormField, SelectBox, SwitchField, TextInput } from '../../components/ui'
+import { apiErrorMessage } from '../../lib/ui-helpers'
 import { IconChevronRight } from '../../lib/icons'
 import type { Role } from '../auth/types'
 import { fetchUser, resetPassword, updateUser } from './api'
-
-const ROLES: Role[] = ['appsec', 'dev_team', 'legal', 'management', 'audit', 'admin']
+import { ROLES } from '../auth/roles'
 
 export function UserDetailPage() {
   const { t } = useTranslation()
@@ -24,7 +25,7 @@ export function UserDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="page">
+      <div className="page page-narrow">
         <p role="status">{t('common.loading')}</p>
       </div>
     )
@@ -32,7 +33,7 @@ export function UserDetailPage() {
 
   if (isError || !user) {
     return (
-      <div className="page">
+      <div className="page page-narrow">
         <p className="form-error" role="alert">
           {t('users.notFound')}
         </p>
@@ -42,26 +43,26 @@ export function UserDetailPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page page-narrow">
       <nav className="breadcrumb" aria-label={t('common.breadcrumb')}>
         <Link to="/settings/users">{t('users.title')}</Link>
         <IconChevronRight />
         <span aria-current="page">{user.username}</span>
       </nav>
 
-      <div className="detail-header">
-        <h1>{user.full_name}</h1>
-        <div className="detail-header-chips">
+      <header className="detail-header">
+        <div className="inline">
           {user.is_active ? (
             <span className="chip chip-sla-within">{t('users.active')}</span>
           ) : (
             <span className="chip chip-sla-none">{t('users.inactive')}</span>
           )}
         </div>
-      </div>
-      <p className="detail-meta">
-        {user.username} &middot; {user.email}
-      </p>
+        <h1>{user.full_name}</h1>
+        <p className="detail-subtitle">
+          {user.username} · {user.email}
+        </p>
+      </header>
 
       {/* Keyed on the user id: navigating to a different user gives a fresh form; an
           update on this one does not remount it (which would wipe the "saved"
@@ -105,10 +106,6 @@ function EditUserForm({
   })
 
   const needsOwnerTeam = role === 'dev_team'
-  const serverErrorMessage =
-    mutation.isError &&
-    ((mutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-      t('users.updateFailed'))
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -122,81 +119,38 @@ function EditUserForm({
     mutation.mutate()
   }
 
+  const message = validationError ?? (mutation.isError ? apiErrorMessage(mutation.error, t('users.updateFailed')) : null)
+
   return (
-    <section aria-labelledby="edit-user-heading">
+    <section aria-labelledby="edit-user-heading" className="card card-pad">
       <h2 id="edit-user-heading" className="section-title">
         {t('users.editSection')}
       </h2>
-      <form onSubmit={handleSubmit} noValidate>
-        {(validationError || serverErrorMessage) && (
-          <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-            <p>{t('users.updateErrorSummary')}</p>
-            <ul>
-              <li>{validationError || serverErrorMessage}</li>
-            </ul>
-          </div>
-        )}
-
-        <div className="filter-bar">
-          <div className="filter-group">
-            <label htmlFor="edit-fullname">{t('users.fullName')}</label>
-            <input
-              id="edit-fullname"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="filter-group">
-            <label htmlFor="edit-email">{t('users.email')}</label>
-            <input
-              id="edit-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="filter-group">
-            <label htmlFor="edit-role">{t('users.role')}</label>
-            <select id="edit-role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {t(`roles.${r}`)}
-                </option>
-              ))}
-            </select>
-          </div>
+      <form className="stack" onSubmit={handleSubmit} noValidate>
+        {message && <ErrorSummary ref={errorSummaryRef} title={t('users.updateErrorSummary')} message={message} />}
+        <div className="form-grid">
+          <FormField label={t('users.fullName')}>
+            <TextInput value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          </FormField>
+          <FormField label={t('users.email')}>
+            <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </FormField>
+          <FormField label={t('users.role')}>
+            <SelectBox value={role} onChange={setRole} options={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))} />
+          </FormField>
           {needsOwnerTeam && (
-            <div className="filter-group">
-              <label htmlFor="edit-team">{t('inventory.ownerTeam')}</label>
-              <input
-                id="edit-team"
-                type="text"
-                value={ownerTeam}
-                onChange={(e) => setOwnerTeam(e.target.value)}
-                required
-              />
-            </div>
+            <FormField label={t('inventory.ownerTeam')}>
+              <TextInput value={ownerTeam} onChange={(e) => setOwnerTeam(e.target.value)} required />
+            </FormField>
           )}
-          <div className="filter-group">
-            <label className="checkbox-row" htmlFor="edit-active">
-              <input
-                id="edit-active"
-                type="checkbox"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-              />
-              {t('users.active')}
-            </label>
-          </div>
         </div>
-
-        <div className="form-actions" style={{ marginTop: 'var(--space-4)' }}>
-          <button type="submit" disabled={mutation.isPending}>
+        <SwitchField checked={isActive} onChange={setIsActive}>
+          {t('users.activeSwitch')}
+        </SwitchField>
+        <div className="form-actions">
+          <Button type="submit" variant="primary" disabled={mutation.isPending}>
             {mutation.isPending ? t('common.saving') : t('common.save')}
-          </button>
+          </Button>
           {saved && (
             <span className="form-success" role="status">
               {t('users.updateSaved')}
@@ -232,36 +186,34 @@ function ResetPasswordForm({ userId }: { userId: string }) {
   }
 
   return (
-    <section aria-labelledby="reset-password-heading">
+    <section aria-labelledby="reset-password-heading" className="card card-pad">
       <h2 id="reset-password-heading" className="section-title">
         {t('users.resetPasswordSection')}
       </h2>
-      <p className="field-hint">{t('users.resetPasswordHint')}</p>
-      <form onSubmit={handleSubmit} noValidate>
+      <form className="stack" onSubmit={handleSubmit} noValidate>
         {(validationError || mutation.isError) && (
-          <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-            <p>{t('users.resetPasswordErrorSummary')}</p>
-            <ul>
-              <li>{validationError ?? t('users.resetPasswordFailed')}</li>
-            </ul>
-          </div>
+          <ErrorSummary
+            ref={errorSummaryRef}
+            title={t('users.resetPasswordErrorSummary')}
+            message={validationError ?? t('users.resetPasswordFailed')}
+          />
         )}
-        <div className="field-row">
-          <label htmlFor="new-password-reset">{t('users.newPassword')}</label>
-          <input
-            id="new-password-reset"
+        <FormField label={t('users.newPassword')} hint={t('users.resetPasswordHint')}>
+          <TextInput
             type="password"
             value={newPassword}
+            autoComplete="new-password"
+            invalid={Boolean(validationError)}
             onChange={(e) => {
               setNewPassword(e.target.value)
               setValidationError(null)
             }}
           />
-        </div>
+        </FormField>
         <div className="form-actions">
-          <button type="submit" disabled={mutation.isPending}>
+          <Button type="submit" disabled={mutation.isPending}>
             {mutation.isPending ? t('common.saving') : t('users.resetPassword')}
-          </button>
+          </Button>
           {mutation.isSuccess && (
             <span className="form-success" role="status">
               {t('users.resetPasswordSuccess')}

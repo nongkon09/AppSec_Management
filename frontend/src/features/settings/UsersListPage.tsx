@@ -10,12 +10,13 @@ import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { IconPlus, IconTeam } from '../../lib/icons'
+import { Button, ErrorSummary, FormField, Modal, SelectBox, TextInput } from '../../components/ui'
+import { apiErrorMessage } from '../../lib/ui-helpers'
+import { IconPlus } from '../../lib/icons'
+import { ROLES } from '../auth/roles'
 import type { Role } from '../auth/types'
 import { createUser, listUsers } from './api'
 import { SettingsTabs } from './SettingsTabs'
-
-const ROLES: Role[] = ['appsec', 'dev_team', 'legal', 'management', 'audit', 'admin']
 
 export function UsersListPage() {
   const { t } = useTranslation()
@@ -30,18 +31,21 @@ export function UsersListPage() {
       <SettingsTabs />
       <div className="page-head">
         <div>
-          <h1 className="page-title">{t('users.title')}</h1>
-          <div className="page-sub">{t('users.subtitle')}</div>
+          <h1>
+            {t('users.title')}
+            {data && <span className="count">{data.total}</span>}
+          </h1>
+          <p className="page-sub">{t('users.subtitle')}</p>
         </div>
-        {!showCreate && (
-          <button type="button" onClick={() => setShowCreate(true)}>
-            <IconPlus />
-            {t('users.addUser')}
-          </button>
-        )}
+        <Button variant="primary" onClick={() => setShowCreate(true)}>
+          <IconPlus />
+          {t('users.addUser')}
+        </Button>
       </div>
 
-      {showCreate && <CreateUserForm onDone={() => setShowCreate(false)} />}
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t('users.addUser')}>
+        <CreateUserForm onDone={() => setShowCreate(false)} />
+      </Modal>
 
       {isLoading && <p role="status">{t('common.loading')}</p>}
       {isError && (
@@ -51,49 +55,41 @@ export function UsersListPage() {
       )}
 
       {data && (
-        <>
-          <p className="result-count" role="status">
-            {t('users.resultCount', { count: data.total })}
-          </p>
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col" className="sticky-column">
-                    {t('users.username')}
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th scope="col" className="sticky-column">
+                  {t('users.fullName')}
+                </th>
+                <th scope="col">{t('users.email')}</th>
+                <th scope="col">{t('users.role')}</th>
+                <th scope="col">{t('inventory.ownerTeam')}</th>
+                <th scope="col">{t('users.status')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.items.map((user) => (
+                <tr key={user.id}>
+                  <th scope="row" className="sticky-column">
+                    <Link to={`/settings/users/${user.id}`}>{user.full_name}</Link>
+                    <span className="cell-sub mono">{user.username}</span>
                   </th>
-                  <th scope="col">{t('users.fullName')}</th>
-                  <th scope="col">{t('users.email')}</th>
-                  <th scope="col">{t('users.role')}</th>
-                  <th scope="col">{t('inventory.ownerTeam')}</th>
-                  <th scope="col">{t('users.status')}</th>
+                  <td className="mono">{user.email}</td>
+                  <td>{t(`roles.${user.role}`)}</td>
+                  <td>{user.owner_team ?? <span className="muted">—</span>}</td>
+                  <td>
+                    {user.is_active ? (
+                      <span className="chip chip-sla-within">{t('users.active')}</span>
+                    ) : (
+                      <span className="chip chip-sla-none">{t('users.inactive')}</span>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.items.map((user) => (
-                  <tr key={user.id}>
-                    <th scope="row" className="sticky-column">
-                      <Link to={`/settings/users/${user.id}`}>{user.username}</Link>
-                    </th>
-                    <td>{user.full_name}</td>
-                    <td className="mono">{user.email}</td>
-                    <td>{t(`roles.${user.role}`)}</td>
-                    <td>
-                      {user.owner_team ?? <span className="muted">—</span>}
-                    </td>
-                    <td>
-                      {user.is_active ? (
-                        <span className="chip chip-sla-within">{t('users.active')}</span>
-                      ) : (
-                        <span className="chip chip-sla-none">{t('users.inactive')}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )
@@ -146,96 +142,44 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
     })
   }
 
-  const serverErrorMessage =
-    mutation.isError &&
-    ((mutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-      t('users.createFailed'))
+  const message = validationError ?? (mutation.isError ? apiErrorMessage(mutation.error, t('users.createFailed')) : null)
 
   return (
-    <form className="card card-pad" onSubmit={handleSubmit} noValidate style={{ marginBottom: 'var(--space-5)' }}>
-      {(validationError || serverErrorMessage) && (
-        <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-          <p>{t('users.createErrorSummary')}</p>
-          <ul>
-            <li>{validationError || serverErrorMessage}</li>
-          </ul>
-        </div>
-      )}
-
-      <div className="filter-bar">
-        <div className="filter-group">
-          <label htmlFor="new-username">{t('users.username')}</label>
-          <input
-            id="new-username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="new-email">{t('users.email')}</label>
-          <input
-            id="new-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="new-fullname">{t('users.fullName')}</label>
-          <input
-            id="new-fullname"
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-          />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="new-role">{t('users.role')}</label>
-          <select id="new-role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {t(`roles.${r}`)}
-              </option>
-            ))}
-          </select>
-        </div>
+    <form onSubmit={handleSubmit} noValidate>
+      {message && <ErrorSummary ref={errorSummaryRef} title={t('users.createErrorSummary')} message={message} />}
+      <div className="form-grid">
+        <FormField label={t('users.fullName')}>
+          <TextInput value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        </FormField>
+        <FormField label={t('users.username')}>
+          <TextInput value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" required />
+        </FormField>
+        <FormField label={t('users.email')} className="field-wide">
+          <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </FormField>
+        <FormField label={t('users.role')}>
+          <SelectBox value={role} onChange={setRole} options={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))} />
+        </FormField>
         {needsOwnerTeam && (
-          <div className="filter-group">
-            <label htmlFor="new-team">
-              <IconTeam /> {t('inventory.ownerTeam')}
-            </label>
-            <input
-              id="new-team"
-              type="text"
-              value={ownerTeam}
-              onChange={(e) => setOwnerTeam(e.target.value)}
-              required
-            />
-          </div>
+          <FormField label={t('inventory.ownerTeam')}>
+            <TextInput value={ownerTeam} onChange={(e) => setOwnerTeam(e.target.value)} required />
+          </FormField>
         )}
-        <div className="filter-group">
-          <label htmlFor="new-password">{t('users.initialPassword')}</label>
-          <input
-            id="new-password"
+        <FormField label={t('users.initialPassword')} hint={t('users.passwordHint')} className="field-wide">
+          <TextInput
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
             required
           />
-        </div>
+        </FormField>
       </div>
-
-      <div className="form-actions" style={{ marginTop: 'var(--space-4)' }}>
-        <button type="submit" disabled={mutation.isPending}>
+      <div className="modal-actions">
+        <Button onClick={onDone}>{t('common.cancel')}</Button>
+        <Button type="submit" variant="primary" disabled={mutation.isPending}>
           {mutation.isPending ? t('common.saving') : t('users.createUser')}
-        </button>
-        <button type="button" className="button-secondary" onClick={onDone}>
-          {t('common.cancel')}
-        </button>
+        </Button>
       </div>
     </form>
   )

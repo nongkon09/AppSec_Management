@@ -1,17 +1,33 @@
 /**
  * Vulnerability backlog (Requirement.md FR-5.4, FR-10.2).
  *
- * Filter state lives in the URL query string rather than in component state. That is what
- * makes UXR-5 work: returning from a Finding detail page restores the exact filtered list
- * the user drilled down from, and a filtered backlog can be shared or bookmarked.
+ * Filter state — including the "technical details" switch — lives in the URL query
+ * string rather than in component state. That is what makes UXR-5 work: returning from a
+ * Finding detail page restores the exact list the user drilled down from, and a filtered
+ * backlog can be shared or bookmarked.
+ *
+ * By default the table shows what anyone needs to act (what, how severe, when due, where);
+ * CVSS/EPSS/component/source are one switch away for the AppSec reader.
  */
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Field, Label } from '@headlessui/react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { SeverityBadge, SeverityLegend, SlaBadge } from '../../components/SeverityBadge'
+import { SeverityBadge, SeverityIcon, SeverityLegend, SlaBadge } from '../../components/SeverityBadge'
+import {
+  Button,
+  FormField,
+  InfoTip,
+  PillGroup,
+  SelectBox,
+  SwitchField,
+  TextInput,
+  TogglePill,
+} from '../../components/ui'
 import { IconCode, IconPackage, IconTarget } from '../../lib/icons'
 import { listFindings } from './api'
-import type { Finding, FindingSource, FindingStatus, SeverityTier, SlaStatusFilter } from './types'
+import { findingLabel, SEVERITY_LABEL } from './labels'
+import type { FindingSource, FindingStatus, SeverityTier } from './types'
 
 const PAGE_SIZE = 50
 const SEVERITY_TIERS: SeverityTier[] = ['critical', 'high', 'medium', 'low']
@@ -34,21 +50,17 @@ function SourceChip({ source }: { source: FindingSource }) {
   )
 }
 
-/** Identifies a Finding: a CVE where there is one, otherwise its title (FR-6.5.5). */
-function findingLabel(finding: Finding): string {
-  return finding.cve_id ?? finding.title ?? finding.id
-}
-
 export function FindingsBacklogPage() {
   const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const severity = searchParams.getAll('severity') as SeverityTier[]
-  const status = searchParams.getAll('finding_status') as FindingStatus[]
-  const source = (searchParams.get('source') ?? undefined) as FindingSource | undefined
-  const slaStatus = (searchParams.get('sla_status') ?? undefined) as SlaStatusFilter | undefined
+  const status = (searchParams.get('finding_status') ?? '') as FindingStatus | ''
+  const source = (searchParams.get('source') ?? '') as FindingSource | ''
+  const slaStatus = searchParams.get('sla_status') ?? ''
   const applicationId = searchParams.get('application_id') ?? undefined
   const search = searchParams.get('search') ?? ''
+  const showTechnical = searchParams.get('tech') === '1'
   const page = Number(searchParams.get('page') ?? '1')
 
   const { data, isLoading, isError } = useQuery({
@@ -56,9 +68,9 @@ export function FindingsBacklogPage() {
     queryFn: () =>
       listFindings({
         severity: severity.length > 0 ? severity : undefined,
-        finding_status: status.length > 0 ? status : undefined,
-        source,
-        sla_status: slaStatus,
+        finding_status: status ? [status] : undefined,
+        source: source || undefined,
+        sla_status: slaStatus === 'overdue' || slaStatus === 'within_sla' ? slaStatus : undefined,
         application_id: applicationId,
         search: search || undefined,
         skip: (page - 1) * PAGE_SIZE,
@@ -66,11 +78,11 @@ export function FindingsBacklogPage() {
       }),
   })
 
-  /** Writes one filter into the URL, resetting pagination. */
-  function updateParam(key: string, value: string | string[] | undefined) {
+  /** Writes one parameter into the URL. Filter changes reset pagination; view changes don't. */
+  function updateParam(key: string, value: string | string[] | undefined, resetPage = true) {
     const next = new URLSearchParams(searchParams)
     next.delete(key)
-    next.delete('page')
+    if (resetPage) next.delete('page')
     if (Array.isArray(value)) {
       value.forEach((item) => next.append(key, item))
     } else if (value) {
@@ -79,105 +91,88 @@ export function FindingsBacklogPage() {
     setSearchParams(next, { replace: true })
   }
 
-  function toggleSeverity(tier: SeverityTier) {
-    updateParam(
-      'severity',
-      severity.includes(tier) ? severity.filter((item) => item !== tier) : [...severity, tier],
-    )
+  function toggleSeverity(tier: SeverityTier, on: boolean) {
+    updateParam('severity', on ? [...severity, tier] : severity.filter((item) => item !== tier))
+  }
+
+  function clearFilters() {
+    setSearchParams(showTechnical ? { tech: '1' } : {})
   }
 
   const activeFilterCount =
-    severity.length +
-    status.length +
-    (source ? 1 : 0) +
-    (slaStatus ? 1 : 0) +
-    (applicationId ? 1 : 0)
+    severity.length + (status ? 1 : 0) + (source ? 1 : 0) + (slaStatus ? 1 : 0) + (applicationId ? 1 : 0) + (search ? 1 : 0)
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
 
   return (
     <div className="page">
-      <h1>{t('findings.title')}</h1>
+      <div className="page-head">
+        <h1>
+          {t('findings.title')}
+          {data && <span className="count">{data.total}</span>}
+        </h1>
+        <SwitchField checked={showTechnical} onChange={(on) => updateParam('tech', on ? '1' : undefined, false)}>
+          {t('findings.showTechnical')}
+        </SwitchField>
+      </div>
 
-      <section className="filter-bar" aria-label={t('findings.filtersLabel')}>
-        <fieldset className="filter-group">
-          <legend>{t('findings.severity')}</legend>
-          {SEVERITY_TIERS.map((tier) => (
-            // Checkboxes rather than a multi-select: the state of every option is visible
-            // at once and each is individually keyboard-reachable (UXR-9).
-            <label key={tier} className="filter-chip">
-              <input
-                type="checkbox"
-                checked={severity.includes(tier)}
-                onChange={() => toggleSeverity(tier)}
-              />
-              <SeverityBadge tier={tier} />
-            </label>
-          ))}
-        </fieldset>
-
-        <div className="filter-group">
-          <label htmlFor="filter-sla">{t('findings.slaStatus')}</label>
-          <select
-            id="filter-sla"
-            value={slaStatus ?? ''}
-            onChange={(event) => updateParam('sla_status', event.target.value || undefined)}
-          >
-            <option value="">{t('findings.allStatuses')}</option>
-            <option value="overdue">{t('sla.overdue')}</option>
-            <option value="within_sla">{t('sla.withinSla')}</option>
-          </select>
+      <section className="stack" aria-label={t('findings.filtersLabel')}>
+        <div className="toolbar">
+          <Field className="field toolbar-grow">
+            <Label className="visually-hidden">{t('findings.search')}</Label>
+            <TextInput
+              type="search"
+              value={search}
+              placeholder={t('findings.searchPlaceholder')}
+              onChange={(event) => updateParam('search', event.target.value || undefined)}
+            />
+          </Field>
+          <FormField label={t('findings.status')}>
+            <SelectBox
+              value={status}
+              onChange={(value) => updateParam('finding_status', value || undefined)}
+              options={[
+                { value: '', label: t('findings.allStatuses') },
+                ...STATUSES.map((item) => ({ value: item, label: t(`findings.statusValue.${item}`) })),
+              ]}
+            />
+          </FormField>
+          <FormField label={t('findings.source')}>
+            <SelectBox
+              value={source}
+              onChange={(value) => updateParam('source', value || undefined)}
+              options={[
+                { value: '', label: t('findings.allSources') },
+                ...SOURCES.map((item) => ({ value: item, label: item.toUpperCase() })),
+              ]}
+            />
+          </FormField>
         </div>
 
-        <div className="filter-group">
-          <label htmlFor="filter-status">{t('findings.status')}</label>
-          <select
-            id="filter-status"
-            value={status[0] ?? ''}
-            onChange={(event) =>
-              updateParam('finding_status', event.target.value ? [event.target.value] : undefined)
-            }
-          >
-            <option value="">{t('findings.allStatuses')}</option>
-            {STATUSES.map((item) => (
-              <option key={item} value={item}>
-                {t(`findings.statusValue.${item}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <label htmlFor="filter-source">{t('findings.source')}</label>
-          <select
-            id="filter-source"
-            value={source ?? ''}
-            onChange={(event) => updateParam('source', event.target.value || undefined)}
-          >
-            <option value="">{t('findings.allSources')}</option>
-            {SOURCES.map((item) => (
-              <option key={item} value={item}>
-                {item.toUpperCase()}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group filter-group-grow">
-          <label htmlFor="filter-search">{t('findings.search')}</label>
-          <input
-            id="filter-search"
-            type="search"
-            value={search}
-            placeholder={t('findings.searchPlaceholder')}
-            onChange={(event) => updateParam('search', event.target.value || undefined)}
+        <div className="toolbar">
+          <PillGroup
+            ariaLabel={t('findings.slaStatus')}
+            value={slaStatus}
+            onChange={(value) => updateParam('sla_status', value || undefined)}
+            options={[
+              { value: '', label: t('findings.allDue') },
+              { value: 'overdue', label: t('sla.overdue') },
+              { value: 'within_sla', label: t('sla.withinSla') },
+            ]}
           />
+          <div className="pill-row" role="group" aria-label={t('findings.severity')}>
+            {SEVERITY_TIERS.map((tier) => (
+              <TogglePill key={tier} checked={severity.includes(tier)} onChange={(on) => toggleSeverity(tier, on)}>
+                <SeverityIcon tier={tier} />
+                {SEVERITY_LABEL[tier]}
+              </TogglePill>
+            ))}
+          </div>
+          {activeFilterCount > 0 && (
+            <Button variant="ghost" small onClick={clearFilters}>
+              {t('findings.clearFilters', { count: activeFilterCount })}
+            </Button>
+          )}
         </div>
-
-        {activeFilterCount > 0 && (
-          <button type="button" className="button-secondary" onClick={() => setSearchParams({})}>
-            {t('findings.clearFilters', { count: activeFilterCount })}
-          </button>
-        )}
       </section>
 
       <SeverityLegend />
@@ -191,7 +186,7 @@ export function FindingsBacklogPage() {
 
       {data && (
         <>
-          <p className="result-count" role="status">
+          <p className="visually-hidden" role="status">
             {t('findings.resultCount', { count: data.total })}
           </p>
 
@@ -205,18 +200,24 @@ export function FindingsBacklogPage() {
                     <th scope="col" className="sticky-column">
                       {t('findings.vulnerability')}
                     </th>
-                    <th scope="col">{t('findings.severity')}</th>
+                    <th scope="col">Severity</th>
+                    <th scope="col">{t('findings.dueDate')}</th>
                     <th scope="col">{t('findings.status')}</th>
-                    <th scope="col">{t('findings.slaStatus')}</th>
                     <th scope="col">{t('inventory.appName')}</th>
-                    <th scope="col">{t('findings.component')}</th>
-                    <th scope="col" className="numeric">
-                      CVSS
-                    </th>
-                    <th scope="col" className="numeric">
-                      EPSS
-                    </th>
-                    <th scope="col">{t('findings.source')}</th>
+                    {showTechnical && (
+                      <>
+                        <th scope="col">Component</th>
+                        <th scope="col" className="numeric">
+                          CVSS
+                          <InfoTip label={t('glossary.cvssLabel')}>{t('glossary.cvss')}</InfoTip>
+                        </th>
+                        <th scope="col" className="numeric">
+                          EPSS
+                          <InfoTip label={t('glossary.epssLabel')}>{t('glossary.epss')}</InfoTip>
+                        </th>
+                        <th scope="col">{t('findings.source')}</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -227,18 +228,14 @@ export function FindingsBacklogPage() {
                         {finding.kev_flag && (
                           // FR-4.1: KEV means confirmed exploitation in the wild — the
                           // single most important signal on the row.
-                          <span className="chip chip-kev" title={t('findings.kevTooltip')}>
+                          <span className="chip chip-kev gap-left" title={t('findings.kevTooltip')}>
                             KEV
                           </span>
                         )}
+                        {finding.cve_id && finding.title && <span className="cell-sub">{finding.title}</span>}
                       </th>
                       <td>
                         <SeverityBadge tier={finding.severity_tier} />
-                      </td>
-                      <td>
-                        <span className="chip chip-neutral">
-                          {t(`findings.statusValue.${finding.status}`)}
-                        </span>
                       </td>
                       <td>
                         <SlaBadge
@@ -248,26 +245,33 @@ export function FindingsBacklogPage() {
                         />
                       </td>
                       <td>
+                        <span className="chip chip-neutral">{t(`findings.statusValue.${finding.status}`)}</span>
+                      </td>
+                      <td className="nowrap">
                         {finding.application_name}
                         <span className="cell-sub">{finding.version_label}</span>
                       </td>
-                      <td>
-                        {finding.component_name ? (
-                          <>
-                            <span className="mono">{finding.component_name}</span>
-                            <span className="cell-sub mono">{finding.component_version}</span>
-                          </>
-                        ) : (
-                          <span className="muted">—</span>
-                        )}
-                      </td>
-                      <td className="numeric mono">{finding.cvss?.toFixed(1) ?? '—'}</td>
-                      <td className="numeric mono">
-                        {finding.epss === null ? '—' : `${(finding.epss * 100).toFixed(1)}%`}
-                      </td>
-                      <td>
-                        <SourceChip source={finding.source} />
-                      </td>
+                      {showTechnical && (
+                        <>
+                          <td>
+                            {finding.component_name ? (
+                              <>
+                                <span className="mono">{finding.component_name}</span>
+                                <span className="cell-sub mono">{finding.component_version}</span>
+                              </>
+                            ) : (
+                              <span className="muted">—</span>
+                            )}
+                          </td>
+                          <td className="numeric mono">{finding.cvss?.toFixed(1) ?? '—'}</td>
+                          <td className="numeric mono">
+                            {finding.epss === null ? '—' : `${(finding.epss * 100).toFixed(1)}%`}
+                          </td>
+                          <td>
+                            <SourceChip source={finding.source} />
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -277,23 +281,17 @@ export function FindingsBacklogPage() {
 
           {totalPages > 1 && (
             <nav className="pagination" aria-label={t('common.pagination')}>
-              <button
-                type="button"
-                className="button-secondary"
-                disabled={page <= 1}
-                onClick={() => updateParam('page', String(page - 1))}
-              >
+              <Button small disabled={page <= 1} onClick={() => updateParam('page', String(page - 1), false)}>
                 {t('common.previous')}
-              </button>
+              </Button>
               <span>{t('common.pageOf', { page, totalPages })}</span>
-              <button
-                type="button"
-                className="button-secondary"
+              <Button
+                small
                 disabled={page >= totalPages}
-                onClick={() => updateParam('page', String(page + 1))}
+                onClick={() => updateParam('page', String(page + 1), false)}
               >
                 {t('common.next')}
-              </button>
+              </Button>
             </nav>
           )}
         </>

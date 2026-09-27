@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { Button, FormField, TextInput } from '../../components/ui'
 import { IconLock } from '../../lib/icons'
 import { useAuth } from './context'
 
@@ -32,37 +33,32 @@ export function LoginPage() {
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit}>
         <div className="auth-brand">
-          <span className="brand-mark auth-brand-mark">
+          <span className="brand-mark">
             <IconLock />
           </span>
-          <div>
-            <div className="auth-brand-name">{t('appName')}</div>
-          </div>
+          {t('appName')}
         </div>
         <h1>{t('login.title')}</h1>
-        <label>
-          {t('login.username')}
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            required
-          />
-        </label>
-        <label>
-          {t('login.password')}
-          <input
+        <FormField label={t('login.username')}>
+          <TextInput value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />
+        </FormField>
+        <FormField label={t('login.password')}>
+          <TextInput
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
             required
           />
-        </label>
-        {error && <p className="form-error">{error}</p>}
-        <button type="submit" disabled={isSubmitting}>
-          {t('login.submit')}
-        </button>
+        </FormField>
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+        <Button type="submit" variant="primary" disabled={isSubmitting}>
+          {isSubmitting ? t('login.submitting') : t('login.submit')}
+        </Button>
       </form>
     </div>
   )

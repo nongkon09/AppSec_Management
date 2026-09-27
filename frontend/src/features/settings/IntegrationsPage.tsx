@@ -7,15 +7,19 @@
  * (FR-7's "pluggable, add a destination without touching Core") but calling one is not
  * wired up yet, which this page says plainly rather than pretending otherwise.
  */
+import { Switch } from '@headlessui/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SeverityBadge } from '../../components/SeverityBadge'
+import { SeverityBadge, SeverityIcon } from '../../components/SeverityBadge'
+import { Button, ConfirmDialog, ErrorSummary, FormField, Modal, SelectBox, TextInput, TogglePill } from '../../components/ui'
+import { apiErrorMessage } from '../../lib/ui-helpers'
 import { IconPlus } from '../../lib/icons'
+import { SEVERITY_LABEL } from '../findings/labels'
 import type { SeverityTier } from '../findings/types'
 import { createConnector, deleteConnector, listConnectors, updateConnector } from './integrationApi'
-import type { ConnectorType } from './integrationTypes'
+import type { ConnectorType, IntegrationConnector } from './integrationTypes'
 import { SettingsTabs } from './SettingsTabs'
 
 const CONNECTOR_TYPES: ConnectorType[] = ['jira', 'service_desk_plus', 'generic_webhook']
@@ -24,6 +28,7 @@ const SEVERITIES: SeverityTier[] = ['critical', 'high', 'medium', 'low']
 export function IntegrationsPage() {
   const { t } = useTranslation()
   const [showCreate, setShowCreate] = useState(false)
+  const [deleting, setDeleting] = useState<IntegrationConnector | null>(null)
   const queryClient = useQueryClient()
   const { data: connectors, isLoading, isError } = useQuery({
     queryKey: ['integration-connectors'],
@@ -31,14 +36,16 @@ export function IntegrationsPage() {
   })
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, isEnabled }: { id: string; isEnabled: boolean }) =>
-      updateConnector(id, { is_enabled: isEnabled }),
+    mutationFn: ({ id, isEnabled }: { id: string; isEnabled: boolean }) => updateConnector(id, { is_enabled: isEnabled }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integration-connectors'] }),
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteConnector,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integration-connectors'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['integration-connectors'] })
+      setDeleting(null)
+    },
   })
 
   return (
@@ -46,18 +53,28 @@ export function IntegrationsPage() {
       <SettingsTabs />
       <div className="page-head">
         <div>
-          <h1 className="page-title">{t('integrations.title')}</h1>
-          <div className="page-sub">{t('integrations.subtitle')}</div>
+          <h1>{t('integrations.title')}</h1>
+          <p className="page-sub">{t('integrations.subtitle')}</p>
         </div>
-        {!showCreate && (
-          <button type="button" onClick={() => setShowCreate(true)}>
-            <IconPlus />
-            {t('integrations.addConnector')}
-          </button>
-        )}
+        <Button variant="primary" onClick={() => setShowCreate(true)}>
+          <IconPlus />
+          {t('integrations.addConnector')}
+        </Button>
       </div>
 
-      {showCreate && <CreateConnectorForm onDone={() => setShowCreate(false)} />}
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t('integrations.addConnector')}>
+        <CreateConnectorForm onDone={() => setShowCreate(false)} />
+      </Modal>
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => deleting && deleteMutation.mutate(deleting.id)}
+        title={t('integrations.confirmDeleteTitle', { name: deleting?.name ?? '' })}
+        description={t('integrations.confirmDeleteBody')}
+        confirmLabel={t('common.delete')}
+        pending={deleteMutation.isPending}
+      />
 
       {isLoading && <p role="status">{t('common.loading')}</p>}
       {isError && (
@@ -65,10 +82,13 @@ export function IntegrationsPage() {
           {t('integrations.loadError')}
         </p>
       )}
-
-      {connectors && connectors.length === 0 && (
-        <p className="empty-state">{t('integrations.empty')}</p>
+      {(toggleMutation.isError || deleteMutation.isError) && (
+        <p className="form-error" role="alert">
+          {apiErrorMessage(toggleMutation.error ?? deleteMutation.error, t('integrations.updateFailed'))}
+        </p>
       )}
+
+      {connectors && connectors.length === 0 && <p className="empty-state">{t('integrations.empty')}</p>}
 
       {connectors && connectors.length > 0 && (
         <div className="table-scroll">
@@ -78,11 +98,11 @@ export function IntegrationsPage() {
                 <th scope="col" className="sticky-column">
                   {t('integrations.name')}
                 </th>
-                <th scope="col">{t('integrations.type')}</th>
-                <th scope="col">{t('integrations.baseUrl')}</th>
                 <th scope="col">{t('integrations.routing')}</th>
                 <th scope="col">{t('integrations.status')}</th>
-                <th scope="col">{t('common.actions')}</th>
+                <th scope="col">
+                  <span className="visually-hidden">{t('common.actions')}</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -90,19 +110,18 @@ export function IntegrationsPage() {
                 <tr key={connector.id}>
                   <th scope="row" className="sticky-column">
                     {connector.name}
+                    <span className="cell-sub">
+                      <span className="mono">{connector.connector_type}</span> · <span className="mono">{connector.base_url}</span>
+                    </span>
                     {connector.connector_type !== 'jira' && (
                       <span className="cell-sub">{t('integrations.notImplementedYet')}</span>
                     )}
                   </th>
                   <td>
-                    <span className="chip chip-neutral">{connector.connector_type}</span>
-                  </td>
-                  <td className="mono">{connector.base_url}</td>
-                  <td>
                     {connector.routing_severities.length === 0 ? (
                       <span className="muted">{t('integrations.manualOnly')}</span>
                     ) : (
-                      <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
+                      <div className="cell-chips">
                         {connector.routing_severities.map((tier) => (
                           <SeverityBadge key={tier} tier={tier} />
                         ))}
@@ -110,29 +129,23 @@ export function IntegrationsPage() {
                     )}
                   </td>
                   <td>
-                    <label className="checkbox-row">
-                      <input
-                        type="checkbox"
+                    <div className="inline">
+                      <Switch
                         checked={connector.is_enabled}
-                        onChange={(e) =>
-                          toggleMutation.mutate({ id: connector.id, isEnabled: e.target.checked })
-                        }
-                      />
-                      {connector.is_enabled ? t('integrations.enabled') : t('integrations.disabled')}
-                    </label>
+                        onChange={(on) => toggleMutation.mutate({ id: connector.id, isEnabled: on })}
+                        disabled={toggleMutation.isPending}
+                        className="switch"
+                        aria-label={t('integrations.enableLabel', { name: connector.name })}
+                      >
+                        <span className="switch-thumb" />
+                      </Switch>
+                      <span>{connector.is_enabled ? t('integrations.enabled') : t('integrations.disabled')}</span>
+                    </div>
                   </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="button-secondary"
-                      onClick={() => {
-                        if (window.confirm(t('integrations.confirmDelete', { name: connector.name }))) {
-                          deleteMutation.mutate(connector.id)
-                        }
-                      }}
-                    >
+                  <td className="numeric">
+                    <Button small variant="ghost" onClick={() => setDeleting(connector)}>
                       {t('common.delete')}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -164,14 +177,9 @@ function CreateConnectorForm({ onDone }: { onDone: () => void }) {
     },
   })
 
-  function toggleSeverity(tier: SeverityTier) {
-    setSeverities((prev) => (prev.includes(tier) ? prev.filter((t) => t !== tier) : [...prev, tier]))
+  function toggleSeverity(tier: SeverityTier, on: boolean) {
+    setSeverities((prev) => (on ? [...prev, tier] : prev.filter((item) => item !== tier)))
   }
-
-  const serverErrorMessage =
-    mutation.isError &&
-    ((mutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-      t('integrations.createFailed'))
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -198,97 +206,62 @@ function CreateConnectorForm({ onDone }: { onDone: () => void }) {
     })
   }
 
-  return (
-    <form
-      className="card card-pad"
-      onSubmit={handleSubmit}
-      noValidate
-      style={{ marginBottom: 'var(--space-5)' }}
-    >
-      {(validationError || serverErrorMessage) && (
-        <div className="error-summary" role="alert" tabIndex={-1} ref={errorSummaryRef}>
-          <p>{t('integrations.createErrorSummary')}</p>
-          <ul>
-            <li>{validationError || serverErrorMessage}</li>
-          </ul>
-        </div>
-      )}
+  const message =
+    validationError ?? (mutation.isError ? apiErrorMessage(mutation.error, t('integrations.createFailed')) : null)
 
-      <div className="filter-bar">
-        <div className="filter-group">
-          <label htmlFor="conn-name">{t('integrations.name')}</label>
-          <input id="conn-name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="conn-type">{t('integrations.type')}</label>
-          <select
-            id="conn-type"
+  return (
+    <form onSubmit={handleSubmit} noValidate>
+      {message && <ErrorSummary ref={errorSummaryRef} title={t('integrations.createErrorSummary')} message={message} />}
+      <div className="form-grid">
+        <FormField label={t('integrations.name')}>
+          <TextInput value={name} onChange={(e) => setName(e.target.value)} />
+        </FormField>
+        <FormField label={t('integrations.type')}>
+          <SelectBox
             value={connectorType}
-            onChange={(e) => setConnectorType(e.target.value as ConnectorType)}
-          >
-            {CONNECTOR_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-group filter-group-grow">
-          <label htmlFor="conn-url">{t('integrations.baseUrl')}</label>
-          <input
-            id="conn-url"
-            type="text"
-            placeholder="https://example.atlassian.net"
-            value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
+            onChange={setConnectorType}
+            options={CONNECTOR_TYPES.map((type) => ({ value: type, label: <span className="mono">{type}</span> }))}
           />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="conn-token">{t('integrations.authToken')}</label>
-          <input
-            id="conn-token"
+        </FormField>
+        <FormField label={t('integrations.baseUrl')} className="field-wide">
+          <TextInput placeholder="https://example.atlassian.net" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+        </FormField>
+        <FormField label={t('integrations.authToken')}>
+          <TextInput
             type="password"
+            autoComplete="off"
             placeholder={t('integrations.authTokenPlaceholder')}
             value={authToken}
             onChange={(e) => setAuthToken(e.target.value)}
           />
-        </div>
+        </FormField>
         {connectorType === 'jira' && (
-          <div className="filter-group">
-            <label htmlFor="conn-project">{t('integrations.projectKey')}</label>
-            <input
-              id="conn-project"
-              type="text"
-              placeholder="SEC"
-              value={projectKey}
-              onChange={(e) => setProjectKey(e.target.value)}
-            />
-          </div>
+          <FormField label={t('integrations.projectKey')}>
+            <TextInput placeholder="SEC" value={projectKey} onChange={(e) => setProjectKey(e.target.value)} />
+          </FormField>
         )}
       </div>
 
-      <fieldset className="filter-group" style={{ marginTop: 'var(--space-4)' }}>
-        <legend>{t('integrations.routingLegend')}</legend>
-        {SEVERITIES.map((tier) => (
-          <label key={tier} className="filter-chip">
-            <input
-              type="checkbox"
-              checked={severities.includes(tier)}
-              onChange={() => toggleSeverity(tier)}
-            />
-            <SeverityBadge tier={tier} />
-          </label>
-        ))}
-      </fieldset>
-      <p className="field-hint">{t('integrations.routingHint')}</p>
+      <div className="field">
+        <span className="field-label" id="routing-label">
+          {t('integrations.routingLegend')}
+        </span>
+        <div className="pill-row" role="group" aria-labelledby="routing-label">
+          {SEVERITIES.map((tier) => (
+            <TogglePill key={tier} checked={severities.includes(tier)} onChange={(on) => toggleSeverity(tier, on)}>
+              <SeverityIcon tier={tier} />
+              {SEVERITY_LABEL[tier]}
+            </TogglePill>
+          ))}
+        </div>
+        <p className="field-hint">{t('integrations.routingHint')}</p>
+      </div>
 
-      <div className="form-actions" style={{ marginTop: 'var(--space-4)' }}>
-        <button type="submit" disabled={mutation.isPending}>
+      <div className="modal-actions">
+        <Button onClick={onDone}>{t('common.cancel')}</Button>
+        <Button type="submit" variant="primary" disabled={mutation.isPending}>
           {mutation.isPending ? t('common.saving') : t('integrations.createConnector')}
-        </button>
-        <button type="button" className="button-secondary" onClick={onDone}>
-          {t('common.cancel')}
-        </button>
+        </Button>
       </div>
     </form>
   )

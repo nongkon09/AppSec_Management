@@ -13,12 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY pyproject.toml ./
+COPY pyproject.toml constraints.txt ./
 # Copy only what the build backend (hatchling) needs to resolve the package
 # metadata before the rest of the source lands, so dependency installation is
 # cached across source-only changes.
 COPY app ./app
-RUN pip install --no-cache-dir .
+# Pinned to the versions the tests passed against (see constraints.txt).
+RUN pip install --no-cache-dir -c constraints.txt .
 
 
 FROM python:3.12-slim AS runtime
@@ -39,7 +40,7 @@ COPY --chown=appsec:appsec alembic ./alembic
 COPY --chown=appsec:appsec alembic.ini ./
 COPY --chown=appsec:appsec docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
-    && mkdir -p /app/uploads/pentest-reports \
+    && mkdir -p /app/uploads/pentest-reports /app/uploads/sbom-evidence \
     && chown -R appsec:appsec /app/uploads
 
 USER appsec

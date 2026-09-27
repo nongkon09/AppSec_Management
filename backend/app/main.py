@@ -21,7 +21,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(
     title="AppSec Management Platform API",
-    version="0.2.1",
+    version="0.3.0",
     description="Central Aggregation & Orchestration Platform for Application Security "
     "(see Requirement.md for full specification).",
     lifespan=lifespan,

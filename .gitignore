@@ -1,38 +1,85 @@
-# --- Python / backend ---
+# ------------------------------------------------------------------------------
+# Secrets and local configuration — never commit. Templates (*.example) stay tracked.
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# ------------------------------------------------------------------------------
+# Python / backend
+# ------------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+venv/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
 *.db
-backend/.env
-backend/.env.*
-!backend/.env.example
-
-# --- Node / frontend ---
-node_modules/
-dist/
-.vite/
-frontend/.env
-frontend/.env.*
-!frontend/.env.example
-
-# --- Alembic ---
+*.sqlite
+*.sqlite3
 backend/alembic_gen.db
 
-# --- Pentest report uploads (local disk storage) ---
+# Runtime file storage: pentest reports and SBOM scan evidence
 backend/uploads/
+uploads/
 
-# --- OS / editor ---
+# ------------------------------------------------------------------------------
+# Node / frontend
+# ------------------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ------------------------------------------------------------------------------
+# Production pack artefacts (deploy/production)
+# ------------------------------------------------------------------------------
+deploy/production/backups/
+deploy/production/images.tar.gz
+*.dump
+*.tar.gz
+*.tgz
+
+# SBOMs generated while testing locally (real ones live in Dependency-Track)
+*.cdx.json
+*.spdx.json
+sbom*.json
+
+# ------------------------------------------------------------------------------
+# OS / editor
+# ------------------------------------------------------------------------------
 .DS_Store
+Thumbs.db
 *.log
+*.swp
+*.swo
+*~
 .vscode/
 .idea/
+*.iml
 
-# --- Claude Code tooling (skills, agent configs) — not part of the shipped
-# application, so kept out of the product's version-controlled history ---
+# ------------------------------------------------------------------------------
+# AI-assistant tooling (skills, agent configs, prompts) — not part of the product
+# ------------------------------------------------------------------------------
 .agents/
 .claude/
 skills-lock.json

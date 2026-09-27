@@ -89,12 +89,38 @@ read-only export view beyond the existing Audit Trail CSV export (FR-10.4).
 - `POST /api/v1/sbom/upload` is the COTS/Vendor manual path (FR-2.6): validates
   the file as CycloneDX or SPDX JSON, ingests Components directly, and
   best-effort forwards the raw file into Dependency-Track's own pipeline when
-  `DEPENDENCY_TRACK_API_KEY` is configured.
+  `DEPENDENCY_TRACK_UPLOAD_API_KEY` is configured. That key is separate from the
+  read-only sync key `DEPENDENCY_TRACK_API_KEY` (FR-2.7.4).
+- During sync, findings are enriched with the CISA KEV flag and any missing EPSS
+  score from public feeds (`CISA_KEV_FEED_URL`, `EPSS_API_URL`; empty disables),
+  because Dependency-Track 4.x has no KEV data and no EPSS for OSV/GitHub
+  advisories. A missing CVSS score is computed from the CVSS v3 vector.
 - `POST /api/v1/sbom/stale-check` flags Application Versions that have gone
   past `STALE_SBOM_DAYS` (default 90) without a new SBOM (FR-2.4).
-- The Dependency-Track pull-sync is tested against a `FakeConnector` test
-  double, not a live instance — that is the point of the connector interface.
-  The manual-upload path needs no external service and is tested end-to-end.
+- The connector's field mapping is unit-tested against response shapes captured
+  from Dependency-Track 4.14 (`tests/test_dependency_track.py`); the sync logic
+  is tested with a `FakeConnector`. Neither needs a live instance.
+
+### Local Dependency-Track
+
+The dev stack includes Dependency-Track (API on :8081, UI on :8082). First run:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+# wait until http://localhost:8081/api/version answers, then:
+python3 deploy/production/scripts/dtrack-bootstrap.py --url http://localhost:8081 --env-file .env
+docker compose -f docker-compose.dev.yml up -d backend    # backend picks up the keys
+docker compose -f docker-compose.dev.yml restart dtrack-apiserver  # starts OSV mirroring
+```
+
+The bootstrap script writes the DT admin password and both API keys to a
+git-ignored `.env` at the repo root; nothing is printed. It enables the Google
+OSV mirror (Maven, npm, PyPI, Go, NuGet, crates.io, RubyGems, Packagist) with CVE alias sync, so purl-only SBOMs are matched
+within minutes; the full NVD mirror keeps downloading in the background.
+
+To simulate a CI/CD pipeline, `PUT /api/v1/bom` to Dependency-Track with the
+upload key, then run a sync from the SBOM screen (or `POST /api/v1/sbom/sync`).
+Set `ENABLE_SCHEDULER=true` in `.env` to sync automatically.
 
 ### Running the backend without Docker
 
@@ -134,56 +160,31 @@ npm run build
 
 ## Production Deployment
 
-`docker-compose.prod.yml` builds and runs the deployable images (multi-stage
-`backend/Dockerfile` and `frontend/Dockerfile`) instead of the dev images —
-no bind-mounted source, no `--reload`, no Adminer. Dependency-Track is treated
-as an already-running external service (point `DEPENDENCY_TRACK_BASE_URL` /
-`DEPENDENCY_TRACK_API_KEY` at it); it is not bundled here.
+`deploy/production/` is a self-contained pack for a clean install of the
+platform **and** Dependency-Track 4.14.4 on one Docker host — no demo data, one
+System Admin and the default Severity/SLA policy:
 
-1. Create a `.env` next to `docker-compose.prod.yml` with at least:
+```bash
+cd deploy/production
+./scripts/install.sh --host appsec.example.org
+```
 
-   ```bash
-   POSTGRES_PASSWORD=<strong random password>
-   SECRET_KEY=<long random string — JWT signing key>
-   CORS_ALLOWED_ORIGINS=https://your-dashboard-hostname
-   ```
+The installer generates every secret into `deploy/production/.env` (mode 600,
+git-ignored), builds and starts the stack, then configures Dependency-Track
+(replaces `admin/admin`, creates the read-only sync key and the SBOM upload key,
+enables the OSV mirror). `scripts/build-offline-bundle.sh` produces a tarball
+with all container images for servers without internet; `scripts/backup.sh`
+dumps both databases, uploads and DT's encryption keys.
 
-   See `backend/.env.example` for every variable and its default (SBOM
-   sync/stale-check/waiver-expiry intervals, the scheduler toggle, etc).
-   `VITE_API_BASE_URL` and `FRONTEND_PORT` are also settable but default to
-   `/api/v1` (relative — routed by the frontend's own nginx reverse proxy to
-   the `backend` service, so the browser never needs to know the API's
-   hostname) and `80` respectively.
+The stack: `postgres` (separate `appsec` and `dtrack` databases and logins),
+`backend` (migrates and bootstraps on start), `worker` (`python -m
+app.worker`: DT sync, stale check and exception sweep — kept out of the
+4-worker API so each job runs once per interval), `frontend` (nginx, proxies
+`/api`), `dtrack-apiserver`, `dtrack-frontend`.
 
-2. Build and start:
-
-   ```bash
-   docker compose -f docker-compose.prod.yml up -d --build
-   ```
-
-   The backend image's entrypoint runs `alembic upgrade head` on every start
-   before serving traffic — a fresh deployment or a version upgrade both just
-   work. Both `backend` and `frontend` publish a Docker `HEALTHCHECK`
-   (`/health`, reachable through the frontend too at `/health`, for a load
-   balancer that only has a route to the frontend).
-
-3. Seed the initial Admin/AppSec/etc. accounts and the default Severity/SLA
-   policy (see Section 4 and Section 12 of Requirement.md):
-
-   ```bash
-   docker compose -f docker-compose.prod.yml exec backend python -m app.seed
-   ```
-
-   Change every seeded password immediately in a real deployment — `app.seed`
-   is meant to bootstrap access, not to be the permanent credential set.
-
-4. Pentest report uploads (FR-6.5.4) persist in the `pentest_reports` named
-   volume across container replacement; back it up like any other stateful
-   volume. `postgres_data` is the other one that matters.
-
-Upgrading: pull/rebuild the new images and `docker compose -f
-docker-compose.prod.yml up -d --build` again — the entrypoint's migration
-step handles schema changes; nothing else needs a manual step.
+Full guide in Thai — requirements, network, HTTPS, post-install steps,
+approval levels, backup/restore, upgrade, troubleshooting, security checklist:
+[docs/deployment-guide.md](docs/deployment-guide.md).
 
 ## Repository Layout
 
@@ -203,8 +204,10 @@ frontend/              Vite + React + TypeScript application
   src/lib/             api client, i18n, theme, RBAC capabilities, icon set
   src/styles/          design tokens + application styles (UXR-1)
 deploy/postgres-init/  DB init scripts for local Docker Compose (Dependency-Track DB)
+deploy/production/     Production pack: compose (app + Dependency-Track), install,
+                       DT bootstrap, backup and offline-bundle scripts
+docs/                  Deployment guide, workflows, risk-exception design (Thai)
 docker-compose.dev.yml Local development stack (bind-mounted source, hot reload)
-docker-compose.prod.yml Production stack (built images, no bind mounts)
 Requirement.md         Authoritative BRD/FRS specification
 ```
 

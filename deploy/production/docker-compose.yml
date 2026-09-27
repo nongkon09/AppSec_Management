@@ -1,0 +1,143 @@
+# AppSec Management Platform + Dependency-Track: production stack.
+#
+# Clean install: no demo data. On first start the backend migrates the schema and
+# creates one System Admin (INITIAL_ADMIN_*) plus the default Severity/SLA policy.
+# Step-by-step guide: docs/deployment-guide.md. Every setting lives in `.env` next to
+# this file (copy .env.example, or let scripts/install.sh generate it).
+#
+#   browser ──► frontend :APP_PORT (nginx, serves the UI, proxies /api) ──► backend
+#   worker  ──► DT sync / stale check / exception sweep (runs each job exactly once)
+#   CI/CD   ──► dtrack-apiserver :DTRACK_API_PORT (SBOM upload)
+#   CI/CD   ──► frontend :APP_PORT /api/v1/deployments (deployment records)
+#   AppSec  ──► dtrack-frontend :DTRACK_UI_PORT
+
+name: appsec-platform
+
+x-backend-env: &backend-env
+  APP_ENV: production
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
+  ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+  CORS_ALLOWED_ORIGINS: ${APP_PUBLIC_URL:?set APP_PUBLIC_URL}
+  DATABASE_URL: postgresql+psycopg://appsec:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/appsec
+  DEPENDENCY_TRACK_BASE_URL: http://dtrack-apiserver:8080
+  DEPENDENCY_TRACK_API_KEY: ${DEPENDENCY_TRACK_API_KEY:-}
+  DEPENDENCY_TRACK_UPLOAD_API_KEY: ${DEPENDENCY_TRACK_UPLOAD_API_KEY:-}
+  CISA_KEV_FEED_URL: ${CISA_KEV_FEED_URL-https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json}
+  EPSS_API_URL: ${EPSS_API_URL-https://api.first.org/data/v1/epss}
+  OSV_API_URL: ${OSV_API_URL-https://api.osv.dev/v1/vulns}
+  STALE_SBOM_DAYS: ${STALE_SBOM_DAYS:-90}
+  SBOM_SYNC_INTERVAL_HOURS: ${SBOM_SYNC_INTERVAL_HOURS:-6}
+  STALE_CHECK_INTERVAL_HOURS: ${STALE_CHECK_INTERVAL_HOURS:-24}
+  EXCEPTION_SWEEP_INTERVAL_HOURS: ${EXCEPTION_SWEEP_INTERVAL_HOURS:-24}
+  PENTEST_REPORT_UPLOAD_DIR: /app/uploads/pentest-reports
+  SBOM_EVIDENCE_DIR: /app/uploads/sbom-evidence
+  # Outbound proxy for the KEV/EPSS/OSV lookups, if the server has no direct internet.
+  HTTPS_PROXY: ${HTTPS_PROXY:-}
+  HTTP_PROXY: ${HTTP_PROXY:-}
+  NO_PROXY: dtrack-apiserver,postgres,backend,localhost,127.0.0.1,${NO_PROXY:-}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: appsec
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: appsec
+      # Read by postgres-init/01-dtrack.sh on the very first start only.
+      DTRACK_DB_PASSWORD: ${DTRACK_DB_PASSWORD:?set DTRACK_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appsec -d appsec"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    image: ${IMAGE_PREFIX:-appsec-platform}/backend:${APP_VERSION:-latest}
+    build:
+      context: ../../backend
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      ENABLE_SCHEDULER: "false"
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-admin}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-admin@localhost}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+    volumes:
+      - app_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    image: ${IMAGE_PREFIX:-appsec-platform}/backend:${APP_VERSION:-latest}
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    environment:
+      <<: *backend-env
+      ENABLE_SCHEDULER: "false"
+      # The backend container migrates; the worker only starts once that is done.
+      RUN_MIGRATIONS: "false"
+    volumes:
+      - app_uploads:/app/uploads
+    healthcheck:
+      disable: true
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  frontend:
+    image: ${IMAGE_PREFIX:-appsec-platform}/frontend:${APP_VERSION:-latest}
+    build:
+      context: ../../frontend
+    restart: unless-stopped
+    ports:
+      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  dtrack-apiserver:
+    image: dependencytrack/apiserver:${DTRACK_VERSION:-4.14.4}
+    restart: unless-stopped
+    environment:
+      ALPINE_DATABASE_MODE: external
+      ALPINE_DATABASE_URL: jdbc:postgresql://postgres:5432/dtrack
+      ALPINE_DATABASE_DRIVER: org.postgresql.Driver
+      ALPINE_DATABASE_USERNAME: dtrack
+      ALPINE_DATABASE_PASSWORD: ${DTRACK_DB_PASSWORD:?set DTRACK_DB_PASSWORD}
+      ALPINE_CORS_ALLOW_ORIGIN: ${DTRACK_UI_PUBLIC_URL:?set DTRACK_UI_PUBLIC_URL}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+    ports:
+      - "${DTRACK_BIND:-0.0.0.0}:${DTRACK_API_PORT:-8081}:8080"
+    volumes:
+      - dtrack_data:/data
+    deploy:
+      resources:
+        limits:
+          # Dependency-Track needs at least 4.5 GB; below that it is killed while
+          # mirroring vulnerability databases.
+          memory: ${DTRACK_MEMORY_LIMIT:-6g}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  dtrack-frontend:
+    image: dependencytrack/frontend:${DTRACK_VERSION:-4.14.4}
+    restart: unless-stopped
+    environment:
+      # The browser calls the API server directly, so this must be its public URL.
+      API_BASE_URL: ${DTRACK_API_PUBLIC_URL:?set DTRACK_API_PUBLIC_URL}
+    ports:
+      - "${DTRACK_BIND:-0.0.0.0}:${DTRACK_UI_PORT:-8082}:8080"
+    depends_on:
+      - dtrack-apiserver
+
+volumes:
+  postgres_data:
+  app_uploads:
+  dtrack_data:

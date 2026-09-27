@@ -4,6 +4,54 @@ All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/); this project is pre-1.0, so minor
 versions may still include breaking changes.
 
+## [0.3.0]
+
+### Added
+
+- **Dependency-Track integration** (4.14): pull-sync of projects, components and
+  findings; GHSA→CVE aliasing via OSV.dev; CISA KEV and FIRST EPSS enrichment;
+  CVSS vector scoring; separate read-only sync key and SBOM upload key.
+- **Risk Exception register with Maker–Checker** (replaces Waiver and direct VEX
+  edits): risk acceptance, false positive and not affected; reference numbers
+  (`EXC-YYYY-NNNN`); approval matrix by severity/KEV/scope with approver levels
+  L1–L3; separation of duties (no self-approval, one vote per person, admin never
+  decides); residual severity backed by a Control Library; expiry bounded by the
+  SLA; upstream-tool bypass records; daily sweep (expire, close, flag for review).
+  Existing waivers migrate as `legacy` exceptions. See
+  `docs/risk-exception-design.md` and `docs/workflows.md`.
+- **SLA per issue, not per version**: findings carry an `issue_key`
+  (purl-based) and `sla_started_on` inherited from the first detection in the
+  application, so a new release no longer restarts the clock.
+- **Deployments and audit evidence**: which version runs where (recorded by a
+  `pipeline` service role or by hand); backlog counts running versions only;
+  scan snapshots with the exported SBOM stored by SHA-256 and DT project tags
+  (commit, image digest, tool, pipeline run); Evidence Pack export per period.
+- **Production pack** `deploy/production/`: one Compose stack with the platform
+  and Dependency-Track (separate DB logins), `install.sh` (generates secrets,
+  configures DT), `backup.sh`, offline image bundle, and the Thai deployment
+  guide `docs/deployment-guide.md`. Clean installs create a single admin via
+  `python -m app.bootstrap` instead of the demo accounts.
+- Frontend: Exceptions list/detail, request form on findings, Control Library,
+  deployments and evidence export on applications, approval level on users.
+
+### Changed
+
+- Background jobs run in a dedicated `worker` container (`python -m
+  app.worker`). Previously `ENABLE_SCHEDULER` inside a 4-worker API ran every
+  sync and sweep four times per interval.
+- The Go-Live Gate is shown as reference only: upstream scanners are the gate.
+- `docker-compose.prod.yml` is replaced by `deploy/production/docker-compose.yml`.
+
+### Fixed
+
+- `GET /auth/me` omitted `approval_level`, so the UI could not tell checkers
+  apart.
+- Fresh production builds could pick up untested dependency releases: a clean
+  install resolved SQLAlchemy 2.1, under which migration `ed804b338ac7` fails
+  (`type "finding_source" already exists`). Images, the dev image and CI now
+  install with `backend/constraints.txt`, the exact versions the tests passed
+  against; `sqlalchemy` is also capped below 2.1.
+
 ## [0.2.1]
 
 ### Added

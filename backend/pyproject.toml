@@ -1,12 +1,12 @@
 [project]
 name = "appsec-management-backend"
-version = "0.2.1"
+version = "0.3.0"
 description = "AppSec Management Platform - Central API (FastAPI)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
-    "sqlalchemy>=2.0",
+    "sqlalchemy>=2.0,<2.1",
     "alembic>=1.13",
     "psycopg[binary]>=3.1",
     "pydantic-settings>=2.4",

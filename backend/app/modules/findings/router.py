@@ -19,10 +19,7 @@ from app.schemas.finding import (
     FindingCreate,
     FindingOut,
     FindingUpdate,
-    GlobalVexSuppressRequest,
-    GlobalVexSuppressResult,
     PaginatedFindings,
-    VexUpdate,
 )
 from app.schemas.integration import ManualTicketCreate, TicketOut
 
@@ -52,6 +49,10 @@ def _to_out(finding: Finding, today: date | None = None) -> FindingOut:
                 "epss",
                 "kev_flag",
                 "severity_tier",
+                "residual_severity_tier",
+                "effective_severity_tier",
+                "issue_key",
+                "sla_started_on",
                 "status",
                 "vex_status",
                 "vex_justification",
@@ -89,6 +90,7 @@ def list_findings(
     source: str | None = None,
     sla_status: Annotated[str | None, Query(pattern="^(overdue|within_sla)$")] = None,
     search: str | None = None,
+    include_inactive_versions: bool = False,
     skip: int = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> PaginatedFindings:
@@ -104,6 +106,7 @@ def list_findings(
         source=source,
         sla_status=sla_status,
         search=search,
+        include_inactive_versions=include_inactive_versions,
         skip=skip,
         limit=limit,
     )
@@ -172,43 +175,6 @@ def update_remediation_plan(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found")
     updated = service.update_remediation_plan(db, finding, payload, actor=current_user.username)
     return _to_out(updated)
-
-
-_VEX_MANAGERS = (Role.APPSEC, Role.ADMIN)
-
-
-@router.patch("/{finding_id}/vex", response_model=FindingOut)
-def update_vex_status(
-    finding_id: uuid.UUID,
-    payload: VexUpdate,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[CurrentUser, Depends(require_roles(*_VEX_MANAGERS))],
-) -> FindingOut:
-    """FR-8.1/8.2: AppSec/Admin-only — being able to call this endpoint at all *is*
-    the approval step; Dev Team has no path to change VEX status directly."""
-    finding = service.get_finding(db, current_user, finding_id)
-    if finding is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found")
-    updated = service.update_vex_status(db, finding, payload, actor=current_user.username)
-    return _to_out(updated)
-
-
-@router.post("/vex/global-suppress", response_model=GlobalVexSuppressResult)
-def global_suppress_vex(
-    payload: GlobalVexSuppressRequest,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[CurrentUser, Depends(require_roles(*_VEX_MANAGERS))],
-) -> GlobalVexSuppressResult:
-    """FR-8.3: the single Global Suppression mechanism, applied across every
-    Application sharing this CVE (no per-Application scoping — AppSec/Admin already
-    see the whole organisation)."""
-    updated = service.global_suppress_vex(
-        db,
-        payload.cve_id,
-        VexUpdate(vex_status=payload.vex_status, vex_justification=payload.vex_justification),
-        actor=current_user.username,
-    )
-    return GlobalVexSuppressResult(affected_finding_count=len(updated))
 
 
 @router.get("/{finding_id}/tickets", response_model=list[TicketOut])

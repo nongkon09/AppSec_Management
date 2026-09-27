@@ -26,6 +26,9 @@ class FindingCreate(BaseModel):
     # Pentest findings carry a severity assigned by the tester rather than a CVSS-derived
     # tier, so an explicit tier overrides the rule engine when supplied (FR-6.5.5).
     severity_tier: SeverityTier | None = None
+    # Optional stable identity for SAST findings (e.g. "sast:<rule>:<file>") so the same
+    # issue recorded against a later version keeps its SLA clock and exceptions.
+    issue_key: str | None = Field(default=None, max_length=1024)
 
     @model_validator(mode="after")
     def _require_identifier(self) -> "FindingCreate":
@@ -38,27 +41,6 @@ class FindingUpdate(BaseModel):
     """FR-10.2: the Dev Team's remediation plan is the one field they own on a Finding."""
 
     remediation_plan: str = Field(min_length=1, max_length=10_000)
-
-
-class VexUpdate(BaseModel):
-    """FR-8.1/8.2: only reachable by AppSec/Admin — the endpoint being callable at all
-    *is* the "AppSec approves" step, since Dev Team has no path to call it."""
-
-    vex_status: VexStatus
-    vex_justification: str | None = Field(default=None, max_length=128)
-
-
-class GlobalVexSuppressRequest(BaseModel):
-    """FR-8.3: Global Suppression — apply the same VEX decision to every open Finding
-    sharing this CVE, across every Application."""
-
-    cve_id: str = Field(min_length=1, max_length=64)
-    vex_status: VexStatus
-    vex_justification: str | None = Field(default=None, max_length=128)
-
-
-class GlobalVexSuppressResult(BaseModel):
-    affected_finding_count: int
 
 
 class FindingOut(BaseModel):
@@ -74,6 +56,10 @@ class FindingOut(BaseModel):
     epss: float | None
     kev_flag: bool
     severity_tier: SeverityTier
+    residual_severity_tier: SeverityTier | None
+    effective_severity_tier: SeverityTier
+    issue_key: str
+    sla_started_on: date
     status: FindingStatus
     vex_status: VexStatus
     vex_justification: str | None

@@ -58,6 +58,7 @@ def create_user(db: Session, payload: UserCreate, actor: str) -> User:
         full_name=payload.full_name,
         role=payload.role,
         owner_team=payload.owner_team,
+        approval_level=payload.approval_level,
         hashed_password=hash_password(payload.password),
     )
     db.add(user)
@@ -73,6 +74,7 @@ def create_user(db: Session, payload: UserCreate, actor: str) -> User:
             "role": user.role.value,
             "owner_team": user.owner_team,
             "is_active": user.is_active,
+            "approval_level": user.approval_level.value,
         },
     )
     db.commit()
@@ -87,6 +89,7 @@ def update_user(db: Session, user: User, payload: UserUpdate, actor: str) -> Use
         "role": user.role.value,
         "owner_team": user.owner_team,
         "is_active": user.is_active,
+        "approval_level": user.approval_level.value,
     }
     changes = payload.model_dump(exclude_unset=True)
     for field, value in changes.items():
@@ -103,6 +106,7 @@ def update_user(db: Session, user: User, payload: UserUpdate, actor: str) -> Use
         "role": user.role.value,
         "owner_team": user.owner_team,
         "is_active": user.is_active,
+        "approval_level": user.approval_level.value,
     }
     record_audit(
         db,

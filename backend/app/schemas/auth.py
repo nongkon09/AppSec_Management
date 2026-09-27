@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.models.user import Role
+from app.models.user import ApprovalLevel, Role
 
 
 class Token(BaseModel):
@@ -14,5 +14,7 @@ class UserOut(BaseModel):
     full_name: str
     role: Role
     owner_team: str | None = None
+    # The UI shows Checker actions from this; the server re-checks on every decision.
+    approval_level: ApprovalLevel = ApprovalLevel.NONE
 
     model_config = {"from_attributes": True}

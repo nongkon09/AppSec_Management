@@ -18,7 +18,7 @@ from app.core.security import hash_password
 from app.models.component import Component
 from app.models.finding import Finding, FindingSource, FindingStatus, SeverityTier
 from app.models.inventory import Application, AppType, AppVersion, Criticality, Environment
-from app.models.user import Role, User
+from app.models.user import ApprovalLevel, Role, User
 from app.modules.policy import service as policy_service
 
 DEFAULT_PASSWORD = "ChangeMe123!"
@@ -30,6 +30,15 @@ SEED_USERS: list[dict[str, Any]] = [
         "full_name": "AppSec Lead",
         "role": Role.APPSEC,
         "owner_team": None,
+        "approval_level": ApprovalLevel.L2,
+    },
+    {
+        "username": "appsec.analyst",
+        "email": "appsec.analyst@example.local",
+        "full_name": "AppSec Analyst",
+        "role": Role.APPSEC,
+        "owner_team": None,
+        "approval_level": ApprovalLevel.L1,
     },
     {
         "username": "dev.alpha",
@@ -58,6 +67,8 @@ SEED_USERS: list[dict[str, Any]] = [
         "full_name": "Management Exec",
         "role": Role.MANAGEMENT,
         "owner_team": None,
+        # Acts as CISO / risk executive: second approver for Critical/KEV exceptions.
+        "approval_level": ApprovalLevel.L3,
     },
     {
         "username": "audit.viewer",
@@ -71,6 +82,13 @@ SEED_USERS: list[dict[str, Any]] = [
         "email": "sysadmin@example.local",
         "full_name": "System Admin",
         "role": Role.ADMIN,
+        "owner_team": None,
+    },
+    {
+        "username": "ci.pipeline",
+        "email": "ci.pipeline@example.local",
+        "full_name": "CI/CD Pipeline",
+        "role": Role.PIPELINE,
         "owner_team": None,
     },
 ]
@@ -178,6 +196,7 @@ def _seed_demo(db: Session) -> None:
             commit_sha=f"a1b2c3d{index}",
             environment=Environment.PRODUCTION,
             is_current_production=True,
+            is_active=True,
             last_ingested_at=datetime.now(UTC) - timedelta(days=index * 3),
         )
         db.add(version)
@@ -214,6 +233,7 @@ def _seed_demo(db: Session) -> None:
                     severity_tier=decision.tier,
                     status=FindingStatus.OPEN,
                     policy_version=policy.version,
+                    sla_started_on=detected_on,
                     due_date=policy_service.compute_due_date(policy, decision.tier, detected_on),
                     fixed_version=fixed,
                     reference_url=f"https://nvd.nist.gov/vuln/detail/{cve}",
@@ -235,6 +255,7 @@ def _seed_demo(db: Session) -> None:
                     severity_tier=SeverityTier.HIGH,
                     status=FindingStatus.OPEN,
                     policy_version=policy.version,
+                    sla_started_on=today - timedelta(days=15),
                     due_date=policy_service.compute_due_date(
                         policy, SeverityTier.HIGH, today - timedelta(days=15)
                     ),

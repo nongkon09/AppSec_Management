@@ -45,6 +45,9 @@ async def upload_manual_sbom(
     application_id: Annotated[uuid.UUID, Form()],
     version_label: Annotated[str, Form()],
     file: Annotated[UploadFile, File()],
+    source_tool: Annotated[str | None, Form(max_length=64)] = None,
+    image_digest: Annotated[str | None, Form(max_length=255)] = None,
+    commit_sha: Annotated[str | None, Form(max_length=64)] = None,
 ) -> ManualSbomUploadResult:
     """FR-2.6.1/2.6.2: COTS/Vendor manual SBOM upload — vendor-supplied CycloneDX/SPDX,
     or a file generated in-house from vendor-supplied source code. Either way it lands
@@ -61,6 +64,9 @@ async def upload_manual_sbom(
             version_label=version_label,
             raw_bytes=raw_bytes,
             actor=current_user.username,
+            source_tool=source_tool or None,
+            image_digest=image_digest or None,
+            commit_sha=commit_sha or None,
         )
     except SbomFormatError as exc:
         raise HTTPException(

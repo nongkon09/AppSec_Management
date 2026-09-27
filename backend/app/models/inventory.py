@@ -89,6 +89,10 @@ class AppVersion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     # FR-2.4: flagged when no new SBOM ingested within configured threshold (default 90 days)
     is_stale: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # In use: has an open Deployment, or (for an Application with no deployment records
+    # at all) is its most recently ingested version. Backlog and SLA figures count
+    # Findings of active versions only.
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     application: Mapped[Application] = relationship(back_populates="versions")
     findings: Mapped[list["Finding"]] = relationship(

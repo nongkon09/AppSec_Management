@@ -2,6 +2,14 @@ import os
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
+# Never reach Dependency-Track or public threat-intel feeds from the test suite, even when
+# it runs inside a container whose environment points at live ones.
+os.environ["DEPENDENCY_TRACK_API_KEY"] = ""
+os.environ["DEPENDENCY_TRACK_UPLOAD_API_KEY"] = ""
+os.environ["CISA_KEV_FEED_URL"] = ""
+os.environ["EPSS_API_URL"] = ""
+os.environ["OSV_API_URL"] = ""
+os.environ["SBOM_EVIDENCE_DIR"] = "/tmp/appsec-test-sbom-evidence"
 
 from datetime import UTC, datetime
 
@@ -17,7 +25,7 @@ from app.models.component import Component
 from app.models.finding import Finding, FindingSource, FindingStatus, SeverityTier
 from app.models.inventory import Application, AppType, AppVersion, Criticality, Environment
 from app.models.pentest import EngagementType, PentestProject, PentestStatus
-from app.models.user import Role, User
+from app.models.user import ApprovalLevel, Role, User
 
 TEST_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
@@ -63,6 +71,7 @@ def make_user(db_session):
         role: Role,
         owner_team: str | None = None,
         password: str = "Passw0rd!",
+        approval_level: ApprovalLevel = ApprovalLevel.NONE,
     ):
         user = User(
             username=username,
@@ -71,6 +80,7 @@ def make_user(db_session):
             hashed_password=hash_password(password),
             role=role,
             owner_team=owner_team,
+            approval_level=approval_level,
         )
         db_session.add(user)
         db_session.commit()
@@ -111,6 +121,7 @@ def make_version(db_session):
             version_label=version_label,
             environment=Environment.PRODUCTION,
             is_current_production=True,
+            is_active=True,
         )
         db_session.add(version)
         db_session.commit()
@@ -160,8 +171,10 @@ def make_finding(db_session):
         cvss: float | None = 10.0,
         epss: float | None = 0.97,
         kev_flag: bool = True,
+        sla_started_on=None,
     ) -> Finding:
         finding = Finding(
+            sla_started_on=sla_started_on,
             app_version_id=version.id,
             component_id=component.id if component else None,
             severity_tier=severity_tier,

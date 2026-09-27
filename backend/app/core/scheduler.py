@@ -8,11 +8,13 @@ platform. Real deployments set `ENABLE_SCHEDULER=true`.
 import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.base import BaseScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 from app.core.config import get_settings
 from app.core.db import SessionLocal
+from app.modules.exceptions import service as exceptions_service
 from app.modules.sbom import service as sbom_service
-from app.modules.waivers import service as waivers_service
 
 logger = logging.getLogger(__name__)
 
@@ -47,28 +49,22 @@ def _run_stale_check() -> None:
         db.close()
 
 
-def _run_waiver_expiry_check() -> None:
+def run_exception_sweep() -> None:
     db = SessionLocal()
     try:
-        result = waivers_service.check_expired_waivers(db)
+        expired, closed, flagged = exceptions_service.sweep(db)
         logger.info(
-            "Waiver expiry check: %s expired, %s findings reopened",
-            result.expired_count,
-            result.reopened_finding_count,
+            "Exception sweep: %s expired, %s closed, %s flagged for review",
+            expired,
+            closed,
+            flagged,
         )
     finally:
         db.close()
 
 
-def start_scheduler() -> BackgroundScheduler | None:
-    """Starts the background jobs if enabled. Returns the scheduler so `app.main` can
-    shut it down cleanly, or None if scheduling is disabled."""
-    global _scheduler
+def add_jobs(scheduler: BaseScheduler) -> None:
     settings = get_settings()
-    if not settings.enable_scheduler:
-        return None
-
-    scheduler = BackgroundScheduler()
     scheduler.add_job(
         _run_dependency_track_sync,
         "interval",
@@ -82,21 +78,44 @@ def start_scheduler() -> BackgroundScheduler | None:
         id="stale_sbom_check",
     )
     scheduler.add_job(
-        _run_waiver_expiry_check,
+        run_exception_sweep,
         "interval",
-        hours=settings.waiver_expiry_check_interval_hours,
-        id="waiver_expiry_check",
+        hours=settings.exception_sweep_interval_hours,
+        id="exception_sweep",
     )
-    scheduler.start()
-    _scheduler = scheduler
     logger.info(
-        "Background scheduler started: Dependency-Track sync every %sh, stale check every %sh, "
-        "waiver expiry check every %sh",
+        "Background jobs: Dependency-Track sync every %sh, stale check every %sh, "
+        "exception sweep every %sh",
         settings.sbom_sync_interval_hours,
         settings.stale_check_interval_hours,
-        settings.waiver_expiry_check_interval_hours,
+        settings.exception_sweep_interval_hours,
     )
+
+
+def start_scheduler() -> BackgroundScheduler | None:
+    """Starts the background jobs inside the API process if enabled. Returns the scheduler
+    so `app.main` can shut it down cleanly, or None if scheduling is disabled.
+
+    Only for single-process setups: every uvicorn worker runs its own copy, so a
+    multi-worker API would sync and sweep once per worker. Production runs the jobs in
+    the dedicated `app.worker` process instead and leaves this off.
+    """
+    global _scheduler
+    if not get_settings().enable_scheduler:
+        return None
+
+    scheduler = BackgroundScheduler()
+    add_jobs(scheduler)
+    scheduler.start()
+    _scheduler = scheduler
     return scheduler
+
+
+def run_blocking() -> None:
+    """Runs the jobs in the foreground until the process is stopped (`app.worker`)."""
+    scheduler = BlockingScheduler()
+    add_jobs(scheduler)
+    scheduler.start()
 
 
 def shutdown_scheduler() -> None:

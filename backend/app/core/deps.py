@@ -1,27 +1,52 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt import PyJWTError
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.security import decode_access_token
-from app.models.user import Role, User
+from app.models.user import ApprovalLevel, Role, User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+# The CI/CD service account may only record deployments and check an exception reference
+# before a bypass. Enforced here, once, so a new read endpoint cannot leak data to it by
+# forgetting a role check (fail closed).
+_PIPELINE_ALLOWED = (
+    ("POST", "/api/v1/deployments"),
+    ("GET", "/api/v1/exceptions/by-reference/"),
+    ("GET", "/api/v1/auth/me"),
+)
+
+
+def _pipeline_may_call(request: Request) -> bool:
+    path = request.url.path
+    return any(
+        request.method == method and (path == prefix or path.startswith(prefix))
+        for method, prefix in _PIPELINE_ALLOWED
+    )
 
 
 class CurrentUser:
     """Lightweight representation of the authenticated principal, decoded from the JWT."""
 
-    def __init__(self, username: str, role: Role, owner_team: str | None):
+    def __init__(
+        self,
+        username: str,
+        role: Role,
+        owner_team: str | None,
+        approval_level: ApprovalLevel = ApprovalLevel.NONE,
+    ):
         self.username = username
         self.role = role
         self.owner_team = owner_team
+        self.approval_level = approval_level
 
 
 def get_current_user(
+    request: Request,
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Annotated[Session, Depends(get_db)],
 ) -> CurrentUser:
@@ -41,7 +66,17 @@ def get_current_user(
     user = db.query(User).filter(User.username == username, User.is_active.is_(True)).first()
     if user is None:
         raise credentials_error
-    return CurrentUser(username=user.username, role=user.role, owner_team=user.owner_team)
+    if user.role == Role.PIPELINE and not _pipeline_may_call(request):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The pipeline account can only record deployments and check exceptions",
+        )
+    return CurrentUser(
+        username=user.username,
+        role=user.role,
+        owner_team=user.owner_team,
+        approval_level=user.approval_level,
+    )
 
 
 def require_roles(*allowed_roles: Role):

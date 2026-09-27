@@ -43,5 +43,11 @@ class IngestionHistoryOut(BaseModel):
     uploaded_by: str | None
     report_file_url: str | None
     validity_expiry_date: date | None
+    source_tool: str | None
+    image_digest: str | None
+    commit_sha: str | None
+    pipeline_run: str | None
+    sca_bom_imported_at: datetime | None
+    sbom_sha256: str | None
 
     model_config = {"from_attributes": True}

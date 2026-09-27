@@ -1,7 +1,7 @@
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     Boolean,
@@ -14,7 +14,9 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    event,
     func,
+    select,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -69,6 +71,48 @@ class VexStatus(StrEnum):
     NOT_AFFECTED = "not_affected"
     FIXED = "fixed"
     UNDER_INVESTIGATION = "under_investigation"
+
+
+ISSUE_KEY_MAX_LENGTH = 1024
+
+
+def purl_package(purl: str | None) -> str | None:
+    """`pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1?type=jar` ->
+    `pkg:maven/org.apache.logging.log4j/log4j-core` (version, qualifiers, subpath dropped)."""
+    if not purl:
+        return None
+    base = purl.split("#", 1)[0].split("?", 1)[0]
+    if "@" in base:
+        base = base.rsplit("@", 1)[0]
+    return base.strip().lower() or None
+
+
+def build_issue_key(
+    source: "FindingSource",
+    *,
+    component_name: str | None,
+    cve_id: str | None,
+    title: str | None,
+    purl: str | None = None,
+    pentest_project_id: uuid.UUID | None = None,
+) -> str:
+    """Application-level identity of a vulnerability (docs/risk-exception-design.md 3.1).
+
+    Deliberately excludes the component *version* and the AppVersion: the same library
+    flaw found again in a later build is the same issue, so its SLA clock and any
+    approved exception carry over instead of restarting. The package is identified by
+    its purl where available, because SBOM generators disagree on names (Syft reports
+    `log4j-core`, others `org.apache.logging.log4j:log4j-core`) but agree on purls.
+    """
+    identifier = (cve_id or title or "").strip().lower()
+    if source == FindingSource.SBOM:
+        package = purl_package(purl) or (component_name or "").strip().lower()
+        key = f"sbom:{package}:{identifier}"
+    elif source == FindingSource.PENTEST:
+        key = f"pentest:{pentest_project_id}:{identifier}"
+    else:
+        key = f"{source.value}:{identifier}"
+    return key[:ISSUE_KEY_MAX_LENGTH]
 
 
 class Finding(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -128,6 +172,17 @@ class Finding(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # FR-8.1: VEX justification code, e.g. component_not_present, compensating_control.
     vex_justification: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
+    # Same vulnerability across every version of one Application (see build_issue_key).
+    issue_key: Mapped[str] = mapped_column(String(ISSUE_KEY_MAX_LENGTH), nullable=False, index=True)
+    # SLA anchor: first detection of this issue in the Application, inherited across
+    # versions. due_date is always derived from this, never from the sync date.
+    sla_started_on: Mapped[date] = mapped_column(Date, nullable=False)
+    # Set only while an approved risk-acceptance exception assigns a lower residual tier;
+    # severity_tier always keeps the policy's original tier.
+    residual_severity_tier: Mapped[SeverityTier | None] = mapped_column(
+        Enum(SeverityTier, name="severity_tier"), nullable=True
+    )
+
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     # FR-5.2 / NFR Auditability: which PolicySet version produced severity_tier + due_date.
     policy_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -151,6 +206,10 @@ class Finding(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     component: Mapped["Component | None"] = relationship(back_populates="findings")
     app_version: Mapped["AppVersion"] = relationship(back_populates="findings")
 
+    @property
+    def effective_severity_tier(self) -> SeverityTier:
+        return self.residual_severity_tier or self.severity_tier
+
     def is_overdue(self, today: date) -> bool:
         """FR-5.4 Overdue vs Within SLA. Only open Findings can breach an SLA."""
         return (
@@ -158,3 +217,32 @@ class Finding(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             and self.due_date is not None
             and self.due_date < today
         )
+
+
+@event.listens_for(Finding, "before_insert")
+def _fill_issue_identity(_mapper: Any, connection: Any, target: Finding) -> None:
+    """Safety net so every insert path (sync, manual intake, seed, tests) satisfies the
+    issue_key / sla_started_on invariants even if the caller did not set them."""
+    if not target.issue_key:
+        component_name = purl = None
+        if target.component_id is not None:
+            from app.models.component import Component
+
+            row = connection.execute(
+                select(Component.component_name, Component.purl).where(
+                    Component.id == target.component_id
+                )
+            ).first()
+            if row is not None:
+                component_name, purl = row
+        target.issue_key = build_issue_key(
+            target.source or FindingSource.SBOM,
+            component_name=component_name,
+            purl=purl,
+            cve_id=target.cve_id,
+            title=target.title,
+            pentest_project_id=target.pentest_project_id,
+        )
+    if target.sla_started_on is None:
+        detected = target.first_detected_at or datetime.now(UTC)
+        target.sla_started_on = detected.date()

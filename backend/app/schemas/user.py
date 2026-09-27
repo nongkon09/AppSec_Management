@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.models.user import Role
+from app.models.user import ApprovalLevel, Role
 
 
 class UserCreate(BaseModel):
@@ -20,6 +20,8 @@ class UserCreate(BaseModel):
     role: Role
     owner_team: str | None = Field(default=None, max_length=255)
     password: str = Field(min_length=8, max_length=255)
+    # Who may act as Checker on risk decisions (docs/risk-exception-design.md 3.5).
+    approval_level: ApprovalLevel = ApprovalLevel.NONE
 
     @model_validator(mode="after")
     def _dev_team_needs_owner_team(self) -> "UserCreate":
@@ -40,6 +42,7 @@ class UserUpdate(BaseModel):
     role: Role | None = None
     owner_team: str | None = Field(default=None, max_length=255)
     is_active: bool | None = None
+    approval_level: ApprovalLevel | None = None
 
 
 class PasswordReset(BaseModel):
@@ -54,6 +57,7 @@ class UserOut(BaseModel):
     role: Role
     owner_team: str | None
     is_active: bool
+    approval_level: ApprovalLevel
     created_at: datetime
 
     model_config = {"from_attributes": True}

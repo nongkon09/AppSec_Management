@@ -7,7 +7,9 @@ this Protocol only; adding a new SCA platform means writing one new connector cl
 modifying the sync/upsert code.
 """
 
-from dataclasses import dataclass
+from collections.abc import Iterable
+from dataclasses import dataclass, field, replace
+from datetime import datetime
 from typing import Protocol
 
 
@@ -18,6 +20,11 @@ class SCAProject:
     external_id: str
     name: str
     version: str
+    # Pipeline-supplied evidence (docs/risk-exception-design.md 3.7): commit, digest, tool,
+    # pipeline run. Empty when the pipeline did not send them.
+    evidence: dict[str, str] = field(default_factory=dict)
+    # When the SCA platform last received an SBOM for this version; None if unknown.
+    last_bom_import: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -50,6 +57,30 @@ class SCAFinding:
     kev_flag: bool
 
 
+def merge_findings(findings: Iterable[SCAFinding]) -> list[SCAFinding]:
+    """Collapses findings for the same component and vulnerability ID (several advisories
+    often describe one CVE), keeping the highest CVSS/EPSS and any KEV flag."""
+
+    def higher(a: float | None, b: float | None) -> float | None:
+        return b if a is None else a if b is None else max(a, b)
+
+    merged: dict[tuple[str, str], SCAFinding] = {}
+    for finding in findings:
+        key = (finding.component_name, finding.cve_id.upper())
+        current = merged.get(key)
+        merged[key] = (
+            finding
+            if current is None
+            else replace(
+                current,
+                cvss=higher(current.cvss, finding.cvss),
+                epss=higher(current.epss, finding.epss),
+                kev_flag=current.kev_flag or finding.kev_flag,
+            )
+        )
+    return list(merged.values())
+
+
 class SCAConnector(Protocol):
     """Read-only integration surface FR-2.5 requires (FR-2.7.4: separate read-only
     Service Account key from the one CI/CD pipelines use to push SBOM), plus the single
@@ -65,6 +96,10 @@ class SCAConnector(Protocol):
 
     def get_findings(self, project_external_id: str) -> list[SCAFinding]:
         """Vulnerabilities the SCA platform has already matched for one project."""
+        ...
+
+    def export_bom(self, project_external_id: str) -> bytes:
+        """The SBOM the platform currently holds for this project (scan evidence)."""
         ...
 
     def upload_bom(self, project_name: str, project_version: str, bom_bytes: bytes) -> None:

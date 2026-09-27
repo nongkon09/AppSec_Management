@@ -1,4 +1,4 @@
-from app.models.user import Role
+from app.models.user import ApprovalLevel, Role
 
 
 def test_login_success(client, make_user):
@@ -32,3 +32,11 @@ def test_me_returns_current_user(client, make_user, auth_headers):
     assert body["username"] == "dev.alpha"
     assert body["role"] == "dev_team"
     assert body["owner_team"] == "Team Alpha"
+    assert body["approval_level"] == "none"
+
+
+def test_me_includes_approval_level(client, make_user, auth_headers):
+    # The UI decides whether to offer Checker actions from this field.
+    make_user("appsec.lead", Role.APPSEC, approval_level=ApprovalLevel.L2)
+    body = client.get("/api/v1/auth/me", headers=auth_headers("appsec.lead")).json()
+    assert body["approval_level"] == "l2"

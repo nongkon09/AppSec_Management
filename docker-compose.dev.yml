@@ -31,12 +31,14 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       DATABASE_URL: postgresql+psycopg://appsec:appsec@postgres:5432/appsec
       DEPENDENCY_TRACK_BASE_URL: http://dtrack-apiserver:8080
-      DEPENDENCY_TRACK_API_KEY: change-me-read-only-service-account-key
+      # Keys come from a git-ignored .env next to this file (see backend/.env.example).
+      DEPENDENCY_TRACK_API_KEY: ${DEPENDENCY_TRACK_API_KEY:-}
+      DEPENDENCY_TRACK_UPLOAD_API_KEY: ${DEPENDENCY_TRACK_UPLOAD_API_KEY:-}
       STALE_SBOM_DAYS: "90"
       # FR-3.1: background Dependency-Track pull-sync + staleness sweep. Off by
       # default in dev (trigger POST /api/v1/sbom/sync manually instead); set to
       # "true" once dtrack-apiserver has real projects to sync against.
-      ENABLE_SCHEDULER: "false"
+      ENABLE_SCHEDULER: ${ENABLE_SCHEDULER:-false}
       SBOM_SYNC_INTERVAL_HOURS: "6"
       STALE_CHECK_INTERVAL_HOURS: "24"
     ports:

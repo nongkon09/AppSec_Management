@@ -73,6 +73,7 @@ class AppVersionOut(BaseModel):
     is_current_production: bool
     last_ingested_at: datetime | None
     is_stale: bool
+    is_active: bool
 
     model_config = {"from_attributes": True}
 

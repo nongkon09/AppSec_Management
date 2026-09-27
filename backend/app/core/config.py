@@ -46,7 +46,19 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://appsec:appsec@localhost:5432/appsec"
 
     dependency_track_base_url: str = "http://localhost:8081"
+    # FR-2.7.4: the sync key is read-only (VIEW_PORTFOLIO + VIEW_VULNERABILITY). Forwarding a
+    # manual/COTS SBOM (FR-2.6.1) needs BOM_UPLOAD + PROJECT_CREATION_UPLOAD, so it uses a
+    # separate key; leave it empty to keep manual uploads local-only.
     dependency_track_api_key: str = ""
+    dependency_track_upload_api_key: str = ""
+
+    # FR-4.1 exploitation signals, fetched during pull-sync when the SCA platform does not
+    # supply them. Empty string disables the lookup (tests, air-gapped deployments).
+    cisa_kev_feed_url: str = (
+        "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+    )
+    epss_api_url: str = "https://api.first.org/data/v1/epss"
+    osv_api_url: str = "https://api.osv.dev/v1/vulns"
 
     # FR-2.4: Application flagged "Stale/ไม่ Sync" after this many days without a new SBOM.
     stale_sbom_days: int = 90
@@ -57,11 +69,13 @@ class Settings(BaseSettings):
     enable_scheduler: bool = False
     sbom_sync_interval_hours: int = 6
     stale_check_interval_hours: int = 24
-    # FR-6.2: how often the Waiver auto-expiry sweep runs.
-    waiver_expiry_check_interval_hours: int = 24
+    # How often exceptions are expired, closed or flagged for review.
+    exception_sweep_interval_hours: int = 24
 
     # FR-6.5: local disk directory for Pentest report file uploads (PDF/DOCX).
     pentest_report_upload_dir: str = "uploads/pentest-reports"
+    # Scan evidence: SBOM files kept alongside each scan snapshot.
+    sbom_evidence_dir: str = "uploads/sbom-evidence"
 
 
 @lru_cache

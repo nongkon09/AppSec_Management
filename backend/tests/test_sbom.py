@@ -262,6 +262,9 @@ class FakeConnector:
     def get_findings(self, project_external_id: str) -> list[SCAFinding]:
         return self._findings.get(project_external_id, [])
 
+    def export_bom(self, project_external_id: str) -> bytes:
+        return b'{"bomFormat": "CycloneDX", "project": "' + project_external_id.encode() + b'"}'
+
     def upload_bom(self, project_name: str, project_version: str, bom_bytes: bytes) -> None:
         raise NotImplementedError("not exercised by the pull-sync tests")
 

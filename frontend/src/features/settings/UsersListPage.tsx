@@ -13,8 +13,8 @@ import { Link } from 'react-router-dom'
 import { Button, ErrorSummary, FormField, Modal, SelectBox, TextInput } from '../../components/ui'
 import { apiErrorMessage } from '../../lib/ui-helpers'
 import { IconPlus } from '../../lib/icons'
-import { ROLES } from '../auth/roles'
-import type { Role } from '../auth/types'
+import { APPROVAL_LEVELS, ROLES } from '../auth/roles'
+import type { ApprovalLevel, Role } from '../auth/types'
 import { createUser, listUsers } from './api'
 import { SettingsTabs } from './SettingsTabs'
 
@@ -64,6 +64,7 @@ export function UsersListPage() {
                 </th>
                 <th scope="col">{t('users.email')}</th>
                 <th scope="col">{t('users.role')}</th>
+                <th scope="col">{t('users.approvalLevel')}</th>
                 <th scope="col">{t('inventory.ownerTeam')}</th>
                 <th scope="col">{t('users.status')}</th>
               </tr>
@@ -77,6 +78,13 @@ export function UsersListPage() {
                   </th>
                   <td className="mono">{user.email}</td>
                   <td>{t(`roles.${user.role}`)}</td>
+                  <td>
+                    {user.approval_level === 'none' ? (
+                      <span className="muted">—</span>
+                    ) : (
+                      t(`approvalLevel.${user.approval_level}`)
+                    )}
+                  </td>
                   <td>{user.owner_team ?? <span className="muted">—</span>}</td>
                   <td>
                     {user.is_active ? (
@@ -103,6 +111,7 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
   const [fullName, setFullName] = useState('')
   const [role, setRole] = useState<Role>('dev_team')
   const [ownerTeam, setOwnerTeam] = useState('')
+  const [approvalLevel, setApprovalLevel] = useState<ApprovalLevel>('none')
   const [password, setPassword] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
   const errorSummaryRef = useRef<HTMLDivElement>(null)
@@ -116,6 +125,8 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
   })
 
   const needsOwnerTeam = role === 'dev_team'
+  // Only AppSec and Management act as Checkers (docs/risk-exception-design.md 3.5).
+  const canHoldLevel = role === 'appsec' || role === 'management'
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -138,6 +149,7 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
       full_name: fullName.trim(),
       role,
       owner_team: needsOwnerTeam ? ownerTeam.trim() : null,
+      approval_level: canHoldLevel ? approvalLevel : 'none',
       password,
     })
   }
@@ -164,6 +176,15 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
           <FormField label={t('inventory.ownerTeam')}>
             <TextInput value={ownerTeam} onChange={(e) => setOwnerTeam(e.target.value)} required />
           </FormField>
+        )}
+        {canHoldLevel && (
+          <FormField label={t('users.approvalLevel')} hint={t('users.approvalLevelHint')}>
+          <SelectBox
+            value={approvalLevel}
+            onChange={setApprovalLevel}
+            options={APPROVAL_LEVELS.map((l) => ({ value: l, label: t(`approvalLevel.${l}`) }))}
+          />
+        </FormField>
         )}
         <FormField label={t('users.initialPassword')} hint={t('users.passwordHint')} className="field-wide">
           <TextInput

@@ -1,4 +1,4 @@
-import type { Role } from '../auth/types'
+import type { ApprovalLevel, Role } from '../auth/types'
 
 export interface PlatformUser {
   id: string
@@ -8,6 +8,7 @@ export interface PlatformUser {
   role: Role
   owner_team: string | null
   is_active: boolean
+  approval_level: ApprovalLevel
   created_at: string
 }
 
@@ -23,6 +24,7 @@ export interface UserCreateInput {
   role: Role
   owner_team: string | null
   password: string
+  approval_level: ApprovalLevel
 }
 
 export interface UserUpdateInput {
@@ -31,4 +33,5 @@ export interface UserUpdateInput {
   role?: Role
   owner_team?: string | null
   is_active?: boolean
+  approval_level?: ApprovalLevel
 }

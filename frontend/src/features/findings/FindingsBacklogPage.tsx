@@ -235,7 +235,12 @@ export function FindingsBacklogPage() {
                         {finding.cve_id && finding.title && <span className="cell-sub">{finding.title}</span>}
                       </th>
                       <td>
-                        <SeverityBadge tier={finding.severity_tier} />
+                        <SeverityBadge tier={finding.effective_severity_tier} />
+                        {finding.residual_severity_tier && (
+                          <span className="cell-sub">
+                            {t('findings.reducedFrom', { tier: SEVERITY_LABEL[finding.severity_tier] })}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <SlaBadge

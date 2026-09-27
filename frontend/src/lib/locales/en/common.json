@@ -46,7 +46,8 @@
     "management": "Management / Product Owner",
     "audit": "Compliance / Audit",
     "admin": "System Admin",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "pipeline": "CI/CD pipeline (service account)"
   },
   "nav": {
     "dashboard": "Overview",
@@ -59,7 +60,9 @@
     "settings": "Settings",
     "settingsUsers": "Users",
     "settingsIntegrations": "Integrations",
-    "pentest": "Pentest"
+    "pentest": "Pentest",
+    "exceptions": "Exceptions",
+    "controls": "Controls"
   },
   "login": {
     "title": "Sign in",
@@ -133,7 +136,13 @@
     "viewBacklog": "View vulnerabilities",
     "versionLabel": "Version",
     "currentProduction": "in production",
-    "noVersions": "This application has no versions yet."
+    "noVersions": "This application has no versions yet.",
+    "activeVersion": "running",
+    "environmentValue": {
+      "production": "Production",
+      "staging": "Staging",
+      "dev": "Development"
+    }
   },
   "findings": {
     "title": "Vulnerabilities",
@@ -186,7 +195,11 @@
     "clearFilters_one": "Clear {{count}} filter",
     "clearFilters_other": "Clear {{count}} filters",
     "resultCount_one": "{{count}} vulnerability",
-    "resultCount_other": "{{count}} vulnerabilities"
+    "resultCount_other": "{{count}} vulnerabilities",
+    "issueKey": "Issue key (same across versions)",
+    "slaStartedOn": "SLA clock started",
+    "reducedFrom": "Reduced from {{tier}}",
+    "residualTooltip": "An approved risk acceptance lowered the severity after assessing the organisation's controls."
   },
   "policy": {
     "title": "Severity & SLA policy",
@@ -324,7 +337,9 @@
     "passwordTooShortError": "Password must be at least 8 characters.",
     "resetPasswordErrorSummary": "The password wasn't reset:",
     "resetPasswordFailed": "Reset failed. Check your connection and try again.",
-    "resetPasswordSuccess": "Password reset"
+    "resetPasswordSuccess": "Password reset",
+    "approvalLevel": "Approval level",
+    "approvalLevelHint": "How severe a risk this person may approve. Nobody can approve their own request."
   },
   "integrations": {
     "title": "Integrations",
@@ -372,43 +387,6 @@
     "lastError": "Last error",
     "createdAt": "Created"
   },
-  "vex": {
-    "change": "Change VEX status",
-    "justification": "Justification",
-    "noJustification": "None recorded.",
-    "justificationPlaceholder": "e.g. component_not_present, compensating_control",
-    "saveErrorSummary": "The VEX status wasn't saved:",
-    "saveFailed": "Saving failed. Please try again."
-  },
-  "waivers": {
-    "sectionTitle": "Waiver",
-    "none": "None",
-    "hint": "Use this only if it can't be fixed in time. Give a reason and an end date; AppSec decides.",
-    "requestWaiver": "Request waiver",
-    "submitRequest": "Send request",
-    "loadError": "Couldn't load waivers.",
-    "status": "Status",
-    "reason": "Reason",
-    "expiryDate": "Ends on",
-    "requestedBy": "Requested by",
-    "approvedBy": "Decided by",
-    "approve": "Approve",
-    "reject": "Reject",
-    "revoke": "Revoke",
-    "revokeConfirmTitle": "Revoke this waiver?",
-    "revokeConfirmBody": "The vulnerability goes back to open with its original due date.",
-    "decisionFailed": "The decision wasn't saved. Please try again.",
-    "createValidationError": "Enter a reason and an end date.",
-    "createErrorSummary": "The request wasn't sent:",
-    "createFailed": "Couldn't send the request. There may already be a pending or active waiver.",
-    "statusValue": {
-      "pending": "Pending",
-      "active": "Active",
-      "rejected": "Rejected",
-      "expired": "Expired",
-      "revoked": "Revoked"
-    }
-  },
   "golive": {
     "sectionTitle": "Go-Live Gate",
     "approve": "Approve Go-Live",
@@ -421,7 +399,8 @@
     "pentestNotRequired": "Pentest not required",
     "approver": "Approver",
     "approvedAt": "Approved",
-    "breakGlass": "Break-glass"
+    "breakGlass": "Break-glass",
+    "referenceOnly": "Reference only — this checklist does not block releases. The upstream scanners (RHACS, Harbor/Trivy, Inspector) are the gate."
   },
   "pentest": {
     "tabsLabel": "Pentest sections",
@@ -479,5 +458,216 @@
     "noCostData": "No cost data yet.",
     "year": "Year",
     "totalCost": "Total cost"
+  },
+  "approvalLevel": {
+    "none": "Cannot approve",
+    "l1": "L1 – Low/Medium",
+    "l2": "L2 – High",
+    "l3": "L3 – Critical / organisation-wide"
+  },
+  "controls": {
+    "title": "Control library",
+    "subtitle": "Security controls the organisation runs. A risk acceptance cites them to justify a lower severity.",
+    "add": "Add control",
+    "edit": "Edit",
+    "name": "Control",
+    "category": "Category",
+    "effectivenessLabel": "Effectiveness",
+    "owner": "Owner",
+    "reviewDue": "Next review",
+    "reviewDueHint": "After this date the control can't be cited until it is reviewed again.",
+    "reviewOverdue": "Review overdue",
+    "inactive": "Inactive",
+    "evidence": "Evidence",
+    "evidenceUrl": "Evidence link",
+    "description": "Description",
+    "activeSwitch": "In use",
+    "empty": "No controls yet.",
+    "loadError": "Couldn't load controls.",
+    "validation": "Fill in the name (at least 3 characters), owner and next review date.",
+    "saveFailed": "Couldn't save the control.",
+    "saveErrorSummary": "The control wasn't saved",
+    "categoryValue": {
+      "network": "Network",
+      "application": "Application",
+      "monitoring": "Monitoring",
+      "process": "Process"
+    },
+    "effectiveness": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    }
+  },
+  "deployments": {
+    "sectionTitle": "Where it runs",
+    "hint": "Usually recorded by the pipeline. Only running versions count toward the backlog.",
+    "record": "Record deployment",
+    "end": "Mark as removed",
+    "running": "Running",
+    "showHistory": "Show history",
+    "hideHistory": "Hide history",
+    "environment": "Environment",
+    "version": "Version",
+    "deployedAt": "Deployed",
+    "endedAt": "Removed",
+    "digest": "Image digest",
+    "recordedBy": "Recorded by",
+    "referenceUrl": "Release link",
+    "referenceUrlHint": "Pipeline run or change ticket.",
+    "digestHint": "Lets audit match the running image to its scan.",
+    "versionHint": "Pick an existing version or type a new label.",
+    "versionRequired": "Enter the version.",
+    "empty": "No deployment recorded.",
+    "loadError": "Couldn't load deployments.",
+    "recordFailed": "Couldn't record the deployment.",
+    "endFailed": "Couldn't end the deployment.",
+    "errorSummary": "The deployment wasn't recorded",
+    "source": {
+      "pipeline": "pipeline",
+      "manual": "manual"
+    }
+  },
+  "evidence": {
+    "export": "Export evidence",
+    "hint": "One file for audit: which version ran when, its scan results and every exception approved for it.",
+    "from": "From",
+    "to": "To",
+    "download": "Download",
+    "contents": "Covers {{from}} – {{to}}, including the last scan of versions already running at the start.",
+    "failed": "Couldn't create the evidence file.",
+    "failedSummary": "Export failed",
+    "rangeInvalid": "The start date must be before the end date."
+  },
+  "exceptions": {
+    "title": "Exceptions",
+    "subtitle": "Requests to accept a risk or mark a finding as not applicable. Every one is approved by someone other than the requester.",
+    "sectionTitle": "Exceptions",
+    "sectionHint": "An approved exception pauses or adjusts the SLA for this issue in every version of the application.",
+    "none": "None",
+    "request": "Request exception",
+    "requestHint": "Your request goes to approvers based on severity. It has no effect until approved.",
+    "view": {
+      "awaiting": "Awaiting me",
+      "mine": "My requests",
+      "all": "All"
+    },
+    "viewLabel": "Show",
+    "statusLabel": "Status",
+    "allStatuses": "All statuses",
+    "status": {
+      "pending": "Awaiting approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "expired": "Expired",
+      "revoked": "Revoked",
+      "closed": "Closed (fixed)"
+    },
+    "type": {
+      "risk_acceptance": "Risk acceptance",
+      "false_positive": "False positive",
+      "not_affected": "Not affected"
+    },
+    "typeHint": {
+      "risk_acceptance": "The vulnerability is real but you'll fix it later. Controls may justify a lower severity; it must end by the SLA date.",
+      "false_positive": "The scanner is wrong — the component or vulnerability isn't really there.",
+      "not_affected": "The component is present but the vulnerable code can't be exploited here."
+    },
+    "decision": {
+      "approve": "Approved",
+      "reject": "Rejected"
+    },
+    "tool": {
+      "rhacs": "RHACS",
+      "harbor": "Harbor",
+      "trivy": "Trivy",
+      "inspector": "AWS Inspector",
+      "sast": "SAST",
+      "other": "Other"
+    },
+    "lookup": "Find",
+    "lookupLabel": "Reference number",
+    "lookupNotFound": "No exception {{reference}}.",
+    "reference": "Reference",
+    "covers": "Covers",
+    "approvals": "Approvals",
+    "expiresOn": "Ends",
+    "requestedBy": "Requested by",
+    "moreItems_one": "+{{count}} more",
+    "moreItems_other": "+{{count}} more",
+    "needsReview": "Needs review",
+    "legacyHint": "Migrated from the old waiver list; approved under the previous single-approver rule.",
+    "empty": "No exceptions.",
+    "emptyAwaiting": "Nothing is waiting for your decision.",
+    "loadError": "Couldn't load exceptions.",
+    "notFound": "Exception not found.",
+    "backToList": "Back to exceptions",
+    "requestedByOn": "Requested by {{user}} on {{at}}",
+    "originalSeverity": "Original severity",
+    "residualSeverity": "Severity after controls",
+    "noResidual": "Unchanged",
+    "reviewOn": "Review by",
+    "requirement": "Needs",
+    "remaining_one": "{{count}} more approval needed",
+    "remaining_other": "{{count}} more approvals needed",
+    "reason": "Reason",
+    "evidence": "Evidence",
+    "controls": "Controls cited",
+    "coversHint": "Also covers the same issue in versions scanned later.",
+    "noDecisions": "No decisions yet.",
+    "bypasses": "Upstream bypasses",
+    "noBypasses": "No bypass recorded.",
+    "bypassTool": "Tool",
+    "bypassRef": "Link",
+    "bypassNote": "Note",
+    "bypassAt": "When",
+    "bypassBy": "By",
+    "bypassHint": "Record where DevOps let the release through, citing {{reference}}.",
+    "recordBypass": "Record bypass",
+    "actions": "Actions",
+    "approve": "Approve",
+    "reject": "Reject",
+    "withdraw": "Withdraw",
+    "revoke": "Revoke",
+    "comment": "Comment",
+    "commentHint": "Required when rejecting.",
+    "rejectNeedsReason": "Explain why you're rejecting.",
+    "cannotDecide": "You can't decide this one",
+    "decideFailed": "Couldn't save the decision.",
+    "endReason": "Reason",
+    "endedBy": "Ended by {{user}}: {{reason}}",
+    "withdrawHint": "Withdrawing cancels your request. The finding's SLA is unchanged.",
+    "revokeHint": "Revoking ends the exception now; covered findings go back to their original severity and SLA.",
+    "form": {
+      "type": "Type",
+      "currentSeverity": "Current severity",
+      "currentDue": "due {{date}}",
+      "reason": "Why",
+      "reasonHint": "At least 10 characters. Approvers and audit will read this.",
+      "residual": "Severity after controls",
+      "residualHint": "At most two levels lower. KEV stays High or above. Needs at least one control.",
+      "keepOriginal": "Keep {{tier}}",
+      "controls": "Controls that reduce the risk",
+      "noControls": "No usable controls — ask AppSec to add one to the library.",
+      "measures": "Other measures",
+      "justification": "Why it doesn't apply (VEX)",
+      "selectJustification": "Select a justification",
+      "evidence": "Evidence",
+      "evidenceHint": "Links or notes that support the request.",
+      "expiresOn": "Ends on",
+      "expiresHint": "No later than the SLA due date for the resulting severity.",
+      "reviewOn": "Review by",
+      "reviewHint": "Within one year.",
+      "submit": "Send for approval",
+      "failed": "Couldn't submit the request.",
+      "errorSummary": "The request wasn't sent",
+      "reasonTooShort": "Write a reason of at least 10 characters.",
+      "expiryRequired": "Choose an end date.",
+      "justificationRequired": "Choose a justification.",
+      "controlRequired": "Pick at least one control to lower the severity."
+    },
+    "requirementSingle": "1 approval (level {{min}} or above)",
+    "requirementMulti": "{{count}} approvals (level {{min}}+, one at {{top}})"
   }
 }

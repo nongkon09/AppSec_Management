@@ -19,8 +19,10 @@ import {
   IconBacklog,
   IconChevronDown,
   IconDashboard,
+  IconException,
   IconInventory,
   IconLanguage,
+  IconLayers,
   IconLock,
   IconLogout,
   IconMoon,
@@ -45,12 +47,14 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
   { to: '/', labelKey: 'nav.dashboard', capability: 'viewDashboard', Icon: IconDashboard },
   { to: '/findings', labelKey: 'nav.findings', capability: 'viewFindings', Icon: IconBacklog },
+  { to: '/exceptions', labelKey: 'nav.exceptions', capability: 'viewExceptions', Icon: IconException },
   { to: '/applications', labelKey: 'nav.inventory', capability: 'viewInventory', Icon: IconInventory },
   { to: '/pentest/board', labelKey: 'nav.pentest', capability: 'viewPentestProjects', Icon: IconTarget },
 ]
 
 const SECONDARY_NAV: NavItem[] = [
   { to: '/sbom', labelKey: 'nav.sbom', capability: 'manageSbomIngestion', Icon: IconPackage },
+  { to: '/controls', labelKey: 'nav.controls', capability: 'viewControls', Icon: IconLayers },
   { to: '/policy', labelKey: 'nav.policy', capability: 'viewPolicy', Icon: IconPolicy },
   { to: '/audit', labelKey: 'nav.audit', capability: 'viewAuditTrail', Icon: IconAudit },
   { to: '/settings/users', labelKey: 'nav.settings', capability: 'manageUsers', Icon: IconSettings },

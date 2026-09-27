@@ -29,6 +29,32 @@ export interface AppVersion {
   commit_sha: string | null
   environment: Environment
   is_current_production: boolean
+  /** Has an open deployment (or is the latest ingested one of a never-deployed app); only
+   * active versions count toward the backlog. */
+  is_active: boolean
   last_ingested_at: string | null
   is_stale: boolean
+}
+
+export interface Deployment {
+  id: string
+  application_id: string
+  application_name: string
+  app_version_id: string
+  version_label: string
+  environment: Environment
+  deployed_at: string
+  ended_at: string | null
+  image_digest: string | null
+  reference_url: string | null
+  source: 'pipeline' | 'manual'
+  recorded_by: string
+}
+
+export interface DeploymentInput {
+  application_id: string
+  version_label: string
+  environment: Environment
+  image_digest: string | null
+  reference_url: string | null
 }

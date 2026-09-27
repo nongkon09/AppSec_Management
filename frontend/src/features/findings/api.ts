@@ -5,9 +5,6 @@ import type {
   Finding,
   FindingFilters,
   PaginatedFindings,
-  VexUpdateInput,
-  Waiver,
-  WaiverCreateInput,
 } from './types'
 
 export async function listFindings(filters: FindingFilters = {}): Promise<PaginatedFindings> {
@@ -51,35 +48,5 @@ export async function createFindingTicket(findingId: string, connectorId: string
   const { data } = await apiClient.post<Ticket>(`/findings/${findingId}/tickets`, {
     connector_id: connectorId,
   })
-  return data
-}
-
-export async function updateVexStatus(findingId: string, payload: VexUpdateInput): Promise<Finding> {
-  const { data } = await apiClient.patch<Finding>(`/findings/${findingId}/vex`, payload)
-  return data
-}
-
-export async function listWaivers(findingId: string): Promise<Waiver[]> {
-  const { data } = await apiClient.get<Waiver[]>(`/findings/${findingId}/waivers`)
-  return data
-}
-
-export async function requestWaiver(findingId: string, payload: WaiverCreateInput): Promise<Waiver> {
-  const { data } = await apiClient.post<Waiver>(`/findings/${findingId}/waivers`, payload)
-  return data
-}
-
-export async function approveWaiver(waiverId: string): Promise<Waiver> {
-  const { data } = await apiClient.post<Waiver>(`/waivers/${waiverId}/approve`)
-  return data
-}
-
-export async function rejectWaiver(waiverId: string): Promise<Waiver> {
-  const { data } = await apiClient.post<Waiver>(`/waivers/${waiverId}/reject`)
-  return data
-}
-
-export async function revokeWaiver(waiverId: string): Promise<Waiver> {
-  const { data } = await apiClient.post<Waiver>(`/waivers/${waiverId}/revoke`)
   return data
 }

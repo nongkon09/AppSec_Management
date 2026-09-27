@@ -210,7 +210,7 @@ function OverdueFirst() {
       <div className="list">
         {data.items.map((finding) => (
           <Link key={finding.id} className="list-row" to={`/findings/${finding.id}`}>
-            <SeverityBadge tier={finding.severity_tier} />
+            <SeverityBadge tier={finding.effective_severity_tier} />
             <span className="list-row-main">
               <span className="list-row-title">{findingLabel(finding)}</span>
               {finding.kev_flag && <span className="chip chip-kev gap-left">KEV</span>}

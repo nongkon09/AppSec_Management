@@ -50,6 +50,23 @@
   white-space: nowrap;
 }
 
+/* Free text typed by users (exception reasons, evidence) keeps its line breaks. */
+.prewrap {
+  white-space: pre-wrap;
+}
+
+/* Long unbroken identifiers (issue keys, purls) wrap instead of widening the page. */
+.break {
+  overflow-wrap: anywhere;
+}
+
+.truncate {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .gap-left {
   margin-left: var(--space-2);
 }

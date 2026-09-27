@@ -24,9 +24,15 @@ export type Capability =
   | 'manageUsers'
   | 'manageIntegrations'
   | 'createTicket'
-  | 'requestWaiver'
-  | 'approveWaiver'
-  | 'manageVex'
+  | 'viewExceptions'
+  | 'requestException'
+  | 'decideException'
+  | 'revokeException'
+  | 'recordBypass'
+  | 'viewControls'
+  | 'manageControls'
+  | 'recordDeployment'
+  | 'exportEvidence'
   | 'viewGoLiveGate'
   | 'approveGoLive'
   | 'viewPentestProjects'
@@ -58,11 +64,18 @@ const CAPABILITIES: Record<Capability, readonly Role[]> = {
   // FR-7.8: AppSec creates a ticket manually from a Finding — mirrors the backend's
   // `require_roles(Role.APPSEC, Role.ADMIN)` on `POST /findings/{id}/tickets`.
   createTicket: ['appsec', 'admin'],
-  // FR-6.2: Dev/Tech Lead (or AppSec) requests an exception; only AppSec/Admin decide.
-  requestWaiver: ['dev_team', 'appsec', 'admin'],
-  approveWaiver: ['appsec', 'admin'],
-  // FR-8.1/8.2: setting VEX status is itself the AppSec approval step.
-  manageVex: ['appsec', 'admin'],
+  // docs/risk-exception-design.md 3.5: Makers are Dev Team and AppSec; Checkers are AppSec
+  // and Management with an approval level. Admin never judges risk. The server also checks
+  // level, self-approval and double-approval; `can_approve` on each request is authoritative.
+  viewExceptions: ['appsec', 'dev_team', 'management', 'audit', 'admin'],
+  requestException: ['dev_team', 'appsec'],
+  decideException: ['appsec', 'management'],
+  revokeException: ['appsec'],
+  recordBypass: ['dev_team', 'appsec', 'admin'],
+  viewControls: ['appsec', 'dev_team', 'management', 'audit', 'admin'],
+  manageControls: ['appsec'],
+  recordDeployment: ['dev_team', 'appsec', 'admin'],
+  exportEvidence: ['appsec', 'audit', 'management', 'admin', 'dev_team'],
   viewGoLiveGate: ['appsec', 'dev_team', 'management', 'audit', 'admin'],
   approveGoLive: ['appsec', 'admin'],
   viewPentestProjects: ['appsec', 'dev_team', 'management', 'audit', 'admin'],

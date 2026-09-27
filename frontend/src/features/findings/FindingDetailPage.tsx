@@ -2,7 +2,7 @@
  * Finding detail + remediation plan (Requirement.md FR-10.2, FR-10.5, UXR-5, UXR-7).
  *
  * The page leads with what the owning team needs to act — severity, due date, how to fix
- * and the remediation plan — and folds the AppSec-oriented detail (scores, VEX, Waivers,
+ * and the remediation plan — and folds the AppSec-oriented detail (scores, risk exceptions,
  * tickets) into disclosure rows, each with a one-line summary so nothing is hidden
  * without a hint of what is inside.
  *
@@ -17,29 +17,19 @@ import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { SeverityBadge, SlaBadge } from '../../components/SeverityBadge'
-import { Button, ConfirmDialog, DisclosureRow, ErrorSummary, FormField, InfoTip, Modal, SelectBox, TextArea, TextInput } from '../../components/ui'
+import { Button, DisclosureRow, ErrorSummary, FormField, InfoTip, Modal, SelectBox, TextArea } from '../../components/ui'
 import { apiErrorMessage } from '../../lib/ui-helpers'
 import { formatDate, formatDateTime } from '../../lib/format'
 import { IconChevronRight, IconExternal, IconPlus } from '../../lib/icons'
 import { can } from '../../lib/rbac'
 import { useAuth } from '../auth/context'
 import { listConnectors } from '../settings/integrationApi'
-import {
-  approveWaiver,
-  createFindingTicket,
-  fetchFinding,
-  listFindingTickets,
-  listWaivers,
-  rejectWaiver,
-  requestWaiver,
-  revokeWaiver,
-  updateRemediationPlan,
-  updateVexStatus,
-} from './api'
-import { findingLabel } from './labels'
-import type { Finding, VexStatus, Waiver } from './types'
-
-const VEX_STATUSES: VexStatus[] = ['affected', 'not_affected', 'fixed', 'under_investigation']
+import { listExceptions } from '../exceptions/api'
+import { ExceptionStatusBadge } from '../exceptions/ExceptionBadges'
+import { RequestExceptionForm } from '../exceptions/RequestExceptionForm'
+import { createFindingTicket, fetchFinding, listFindingTickets, updateRemediationPlan } from './api'
+import { findingLabel, SEVERITY_LABEL } from './labels'
+import type { Finding } from './types'
 const MAX_PLAN_LENGTH = 10_000
 
 export function FindingDetailPage() {
@@ -97,7 +87,12 @@ export function FindingDetailPage() {
 
       <header className="detail-header">
         <div className="inline">
-          <SeverityBadge tier={finding.severity_tier} />
+          <SeverityBadge tier={finding.effective_severity_tier} />
+          {finding.residual_severity_tier && (
+            <span className="chip chip-neutral" title={t('findings.residualTooltip')}>
+              {t('findings.reducedFrom', { tier: SEVERITY_LABEL[finding.severity_tier] })}
+            </span>
+          )}
           <SlaBadge isOverdue={finding.is_overdue} dueDate={finding.due_date} daysUntilDue={finding.days_until_due} />
           {finding.kev_flag && (
             <span className="chip chip-kev" title={t('findings.kevTooltip')}>
@@ -144,8 +139,7 @@ export function FindingDetailPage() {
 
       <div className="disclosure-group">
         <TechnicalDetails finding={finding} />
-        <VexSection findingId={finding.id} vexStatus={finding.vex_status} vexJustification={finding.vex_justification} />
-        <WaiverSection findingId={finding.id} findingStatus={finding.status} />
+        <ExceptionsSection finding={finding} />
         <TicketsSection findingId={finding.id} />
       </div>
 
@@ -252,6 +246,10 @@ function TechnicalDetails({ finding }: { finding: Finding }) {
           <dd>{finding.due_date ? formatDate(finding.due_date) : t('sla.bestEffort')}</dd>
         </div>
         <div>
+          <dt>{t('findings.slaStartedOn')}</dt>
+          <dd>{formatDate(finding.sla_started_on)}</dd>
+        </div>
+        <div>
           <dt>{t('findings.firstDetected')}</dt>
           <dd>{formatDateTime(finding.first_detected_at)}</dd>
         </div>
@@ -264,166 +262,46 @@ function TechnicalDetails({ finding }: { finding: Finding }) {
           <dt>{t('inventory.ownerTeam')}</dt>
           <dd>{finding.owner_team}</dd>
         </div>
-      </dl>
-    </DisclosureRow>
-  )
-}
-
-/**
- * VEX status (FR-8.1/8.2). Read-only for everyone; the edit control is only rendered
- * under `manageVex` — being able to reach it at all *is* the AppSec approval step.
- */
-function VexSection({
-  findingId,
-  vexStatus,
-  vexJustification,
-}: {
-  findingId: string
-  vexStatus: VexStatus
-  vexJustification: string | null
-}) {
-  const { t } = useTranslation()
-  const { user } = useAuth()
-  const [editing, setEditing] = useState(false)
-  const queryClient = useQueryClient()
-  const canManage = can(user?.role, 'manageVex')
-
-  const mutation = useMutation({
-    mutationFn: (payload: { vex_status: VexStatus; vex_justification: string | null }) =>
-      updateVexStatus(findingId, payload),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(['finding', findingId], updated)
-      queryClient.invalidateQueries({ queryKey: ['findings'] })
-      setEditing(false)
-    },
-  })
-
-  return (
-    <DisclosureRow title="VEX" summary={<span className="mono">{vexStatus}</span>}>
-      <dl className="detail-grid">
         <div>
           <dt>{t('findings.vexStatus')}</dt>
-          <dd className="mono">{vexStatus}</dd>
+          <dd className="mono">
+            {finding.vex_status}
+            {finding.vex_justification && <span className="cell-sub">{finding.vex_justification}</span>}
+          </dd>
         </div>
-        <div>
-          <dt>{t('vex.justification')}</dt>
-          <dd>{vexJustification ?? <span className="muted">{t('vex.noJustification')}</span>}</dd>
+        <div className="field-wide">
+          <dt>{t('findings.issueKey')}</dt>
+          <dd className="mono break">{finding.issue_key}</dd>
         </div>
       </dl>
-      {canManage && (
-        <div>
-          <Button small onClick={() => setEditing(true)}>
-            {t('vex.change')}
-          </Button>
-        </div>
-      )}
-      <Modal open={editing} onClose={() => setEditing(false)} title={t('vex.change')}>
-        <VexEditForm
-          initialStatus={vexStatus}
-          initialJustification={vexJustification ?? ''}
-          isPending={mutation.isPending}
-          error={mutation.isError ? apiErrorMessage(mutation.error, t('vex.saveFailed')) : null}
-          onCancel={() => setEditing(false)}
-          onSubmit={(values) => mutation.mutate(values)}
-        />
-      </Modal>
     </DisclosureRow>
   )
 }
 
-function VexEditForm({
-  initialStatus,
-  initialJustification,
-  isPending,
-  error,
-  onCancel,
-  onSubmit,
-}: {
-  initialStatus: VexStatus
-  initialJustification: string
-  isPending: boolean
-  error: string | null
-  onCancel: () => void
-  onSubmit: (values: { vex_status: VexStatus; vex_justification: string | null }) => void
-}) {
-  const { t } = useTranslation()
-  const [status, setStatus] = useState<VexStatus>(initialStatus)
-  const [justification, setJustification] = useState(initialJustification)
-
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    onSubmit({ vex_status: status, vex_justification: justification.trim() || null })
-  }
-
-  return (
-    <form onSubmit={handleSubmit} noValidate>
-      {error && <ErrorSummary title={t('vex.saveErrorSummary')} message={error} />}
-      <FormField label={t('findings.vexStatus')}>
-        <SelectBox
-          value={status}
-          onChange={setStatus}
-          options={VEX_STATUSES.map((value) => ({ value, label: <span className="mono">{value}</span> }))}
-        />
-      </FormField>
-      <FormField label={t('vex.justification')}>
-        <TextInput
-          value={justification}
-          placeholder={t('vex.justificationPlaceholder')}
-          onChange={(event) => setJustification(event.target.value)}
-        />
-      </FormField>
-      <div className="modal-actions">
-        <Button onClick={onCancel}>{t('common.cancel')}</Button>
-        <Button type="submit" variant="primary" disabled={isPending}>
-          {isPending ? t('common.saving') : t('common.save')}
-        </Button>
-      </div>
-    </form>
-  )
-}
-
 /**
- * Exception/Waiver workflow (FR-6.2): Dev/Tech Lead (or AppSec) requests, AppSec/Admin
- * approves, rejects, or revokes an active one. Auto-expiry runs server-side. Opens by
- * default for approvers when a request is waiting on them.
+ * Risk exceptions covering this Finding (docs/workflows.md W3/W4). Requests are made here;
+ * the Maker-Checker decision happens on the exception page so every approver sees the
+ * same record. Opens by default while a request covering this Finding is pending.
  */
-function WaiverSection({ findingId, findingStatus }: { findingId: string; findingStatus: string }) {
+function ExceptionsSection({ finding }: { finding: Finding }) {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [showRequest, setShowRequest] = useState(false)
-  const [revoking, setRevoking] = useState<Waiver | null>(null)
-  const queryClient = useQueryClient()
 
-  const { data: waivers, isLoading, isError } = useQuery({
-    queryKey: ['finding-waivers', findingId],
-    queryFn: () => listWaivers(findingId),
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['exceptions', { finding_id: finding.id }],
+    queryFn: () => listExceptions({ finding_id: finding.id, limit: 50 }),
   })
 
-  function invalidate() {
-    queryClient.invalidateQueries({ queryKey: ['finding-waivers', findingId] })
-    queryClient.invalidateQueries({ queryKey: ['finding', findingId] })
-  }
+  const exceptions = data?.items ?? []
+  const hasOpen = exceptions.some((e) => e.status === 'pending' || e.status === 'approved')
+  const canRequest = can(user?.role, 'requestException') && finding.status === 'open' && !hasOpen
+  const latest = exceptions[0]
 
-  const approveMutation = useMutation({ mutationFn: approveWaiver, onSuccess: invalidate })
-  const rejectMutation = useMutation({ mutationFn: rejectWaiver, onSuccess: invalidate })
-  const revokeMutation = useMutation({
-    mutationFn: revokeWaiver,
-    onSuccess: () => {
-      invalidate()
-      setRevoking(null)
-    },
-  })
-
-  const canRequest = can(user?.role, 'requestWaiver')
-  const canApprove = can(user?.role, 'approveWaiver')
-  const hasOpenWaiver = waivers?.some((w) => w.status === 'pending' || w.status === 'active')
-  const hasPending = waivers?.some((w) => w.status === 'pending') ?? false
-  const latest = waivers?.[0]
-
-  // Waiting for the list keeps `defaultOpen` from being decided before we know about pending requests.
   if (isLoading) {
     return (
-      <DisclosureRow title={t('waivers.sectionTitle')} summary={t('common.loading')}>
+      <DisclosureRow title={t('exceptions.sectionTitle')} summary={t('common.loading')}>
         <p role="status">{t('common.loading')}</p>
       </DisclosureRow>
     )
@@ -431,71 +309,47 @@ function WaiverSection({ findingId, findingStatus }: { findingId: string; findin
 
   return (
     <DisclosureRow
-      title={t('waivers.sectionTitle')}
-      summary={
-        latest ? (
-          <span className="chip chip-neutral">{t(`waivers.statusValue.${latest.status}`)}</span>
-        ) : (
-          t('waivers.none')
-        )
-      }
-      defaultOpen={canApprove && hasPending}
+      title={t('exceptions.sectionTitle')}
+      summary={latest ? <ExceptionStatusBadge status={latest.status} /> : t('exceptions.none')}
+      defaultOpen={exceptions.some((e) => e.status === 'pending')}
     >
-      <p className="field-hint">{t('waivers.hint')}</p>
-
+      <p className="field-hint">{t('exceptions.sectionHint')}</p>
       {isError && (
         <p className="form-error" role="alert">
-          {t('waivers.loadError')}
+          {t('exceptions.loadError')}
         </p>
       )}
 
-      {waivers && waivers.length > 0 && (
+      {exceptions.length > 0 && (
         <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
-                <th scope="col">{t('waivers.status')}</th>
-                <th scope="col">{t('waivers.reason')}</th>
-                <th scope="col">{t('waivers.expiryDate')}</th>
-                <th scope="col">{t('waivers.requestedBy')}</th>
-                <th scope="col">{t('waivers.approvedBy')}</th>
-                {canApprove && <th scope="col">{t('common.actions')}</th>}
+                <th scope="col">{t('exceptions.reference')}</th>
+                <th scope="col">{t('exceptions.statusLabel')}</th>
+                <th scope="col">{t('exceptions.approvals')}</th>
+                <th scope="col">{t('exceptions.expiresOn')}</th>
+                <th scope="col">{t('exceptions.requestedBy')}</th>
               </tr>
             </thead>
             <tbody>
-              {waivers.map((waiver) => (
-                <tr key={waiver.id}>
+              {exceptions.map((exception) => (
+                <tr key={exception.id}>
                   <td>
-                    <span className="chip chip-neutral">{t(`waivers.statusValue.${waiver.status}`)}</span>
+                    <Link to={`/exceptions/${exception.id}`} className="mono">
+                      {exception.reference}
+                    </Link>
+                    <span className="cell-sub">{t(`exceptions.type.${exception.exception_type}`)}</span>
                   </td>
-                  <td>{waiver.reason}</td>
-                  <td className="nowrap">{formatDate(waiver.expiry_date)}</td>
-                  <td>{waiver.requested_by}</td>
-                  <td>{waiver.approved_by ?? '—'}</td>
-                  {canApprove && (
-                    <td>
-                      {waiver.status === 'pending' && (
-                        <div className="inline">
-                          <Button
-                            small
-                            variant="primary"
-                            disabled={approveMutation.isPending}
-                            onClick={() => approveMutation.mutate(waiver.id)}
-                          >
-                            {t('waivers.approve')}
-                          </Button>
-                          <Button small disabled={rejectMutation.isPending} onClick={() => rejectMutation.mutate(waiver.id)}>
-                            {t('waivers.reject')}
-                          </Button>
-                        </div>
-                      )}
-                      {waiver.status === 'active' && (
-                        <Button small onClick={() => setRevoking(waiver)}>
-                          {t('waivers.revoke')}
-                        </Button>
-                      )}
-                    </td>
-                  )}
+                  <td>
+                    <ExceptionStatusBadge status={exception.status} />
+                  </td>
+                  <td className="mono">
+                    {exception.approvals.filter((a) => a.decision === 'approve').length}/
+                    {exception.required_approvals}
+                  </td>
+                  <td className="nowrap">{formatDate(exception.expires_on)}</td>
+                  <td>{exception.requested_by}</td>
                 </tr>
               ))}
             </tbody>
@@ -503,17 +357,11 @@ function WaiverSection({ findingId, findingStatus }: { findingId: string; findin
         </div>
       )}
 
-      {(approveMutation.isError || rejectMutation.isError) && (
-        <p className="form-error" role="alert">
-          {apiErrorMessage(approveMutation.error ?? rejectMutation.error, t('waivers.decisionFailed'))}
-        </p>
-      )}
-
-      {canRequest && findingStatus === 'open' && !hasOpenWaiver && (
+      {canRequest && (
         <div>
           <Button small onClick={() => setShowRequest(true)}>
             <IconPlus />
-            {t('waivers.requestWaiver')}
+            {t('exceptions.request')}
           </Button>
         </div>
       )}
@@ -521,82 +369,16 @@ function WaiverSection({ findingId, findingStatus }: { findingId: string; findin
       <Modal
         open={showRequest}
         onClose={() => setShowRequest(false)}
-        title={t('waivers.requestWaiver')}
-        description={t('waivers.hint')}
+        title={t('exceptions.request')}
+        description={t('exceptions.requestHint')}
       >
-        <RequestWaiverForm
-          findingId={findingId}
+        <RequestExceptionForm
+          finding={finding}
           onCancel={() => setShowRequest(false)}
-          onDone={() => {
-            setShowRequest(false)
-            invalidate()
-          }}
+          onDone={(created) => navigate(`/exceptions/${created.id}`)}
         />
       </Modal>
-
-      <ConfirmDialog
-        open={revoking !== null}
-        onClose={() => setRevoking(null)}
-        onConfirm={() => revoking && revokeMutation.mutate(revoking.id)}
-        title={t('waivers.revokeConfirmTitle')}
-        description={t('waivers.revokeConfirmBody')}
-        confirmLabel={t('waivers.revoke')}
-        pending={revokeMutation.isPending}
-      />
     </DisclosureRow>
-  )
-}
-
-function RequestWaiverForm({
-  findingId,
-  onCancel,
-  onDone,
-}: {
-  findingId: string
-  onCancel: () => void
-  onDone: () => void
-}) {
-  const { t } = useTranslation()
-  const [reason, setReason] = useState('')
-  const [expiryDate, setExpiryDate] = useState('')
-  const [validationError, setValidationError] = useState<string | null>(null)
-  const errorSummaryRef = useRef<HTMLDivElement>(null)
-
-  const mutation = useMutation({
-    mutationFn: () => requestWaiver(findingId, { reason: reason.trim(), expiry_date: expiryDate }),
-    onSuccess: onDone,
-  })
-
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    mutation.reset()
-    if (!reason.trim() || !expiryDate) {
-      setValidationError(t('waivers.createValidationError'))
-      requestAnimationFrame(() => errorSummaryRef.current?.focus())
-      return
-    }
-    setValidationError(null)
-    mutation.mutate()
-  }
-
-  const message = validationError ?? (mutation.isError ? apiErrorMessage(mutation.error, t('waivers.createFailed')) : null)
-
-  return (
-    <form onSubmit={handleSubmit} noValidate>
-      {message && <ErrorSummary ref={errorSummaryRef} title={t('waivers.createErrorSummary')} message={message} />}
-      <FormField label={t('waivers.reason')}>
-        <TextArea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} invalid={Boolean(validationError) && !reason.trim()} />
-      </FormField>
-      <FormField label={t('waivers.expiryDate')}>
-        <TextInput type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} invalid={Boolean(validationError) && !expiryDate} />
-      </FormField>
-      <div className="modal-actions">
-        <Button onClick={onCancel}>{t('common.cancel')}</Button>
-        <Button type="submit" variant="primary" disabled={mutation.isPending}>
-          {mutation.isPending ? t('common.saving') : t('waivers.submitRequest')}
-        </Button>
-      </div>
-    </form>
   )
 }
 

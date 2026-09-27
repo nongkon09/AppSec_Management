@@ -46,7 +46,8 @@
     "management": "ผู้บริหาร / Product Owner",
     "audit": "Compliance / Audit",
     "admin": "ผู้ดูแลระบบ",
-    "unknown": "ไม่ระบุ"
+    "unknown": "ไม่ระบุ",
+    "pipeline": "CI/CD pipeline (บัญชีระบบ)"
   },
   "nav": {
     "dashboard": "ภาพรวม",
@@ -59,7 +60,9 @@
     "settings": "ตั้งค่า",
     "settingsUsers": "ผู้ใช้งาน",
     "settingsIntegrations": "การเชื่อมต่อ",
-    "pentest": "Pentest"
+    "pentest": "Pentest",
+    "exceptions": "ข้อยกเว้น",
+    "controls": "มาตรการควบคุม"
   },
   "login": {
     "title": "เข้าสู่ระบบ",
@@ -130,7 +133,13 @@
     "viewBacklog": "ดูช่องโหว่",
     "versionLabel": "เวอร์ชัน",
     "currentProduction": "ใช้งานจริงอยู่",
-    "noVersions": "แอปพลิเคชันนี้ยังไม่มีเวอร์ชัน"
+    "noVersions": "แอปพลิเคชันนี้ยังไม่มีเวอร์ชัน",
+    "activeVersion": "ใช้งานอยู่",
+    "environmentValue": {
+      "production": "Production",
+      "staging": "Staging",
+      "dev": "Development"
+    }
   },
   "findings": {
     "title": "ช่องโหว่",
@@ -181,7 +190,11 @@
       "suppressed": "ระงับไว้"
     },
     "clearFilters_other": "ล้างตัวกรอง ({{count}})",
-    "resultCount_other": "{{count}} รายการ"
+    "resultCount_other": "{{count}} รายการ",
+    "issueKey": "รหัสปัญหา (เหมือนกันทุกเวอร์ชัน)",
+    "slaStartedOn": "เริ่มนับ SLA",
+    "reducedFrom": "ลดจาก {{tier}}",
+    "residualTooltip": "ลดความรุนแรงจากการยอมรับความเสี่ยงที่อนุมัติแล้ว หลังประเมินมาตรการควบคุมขององค์กร"
   },
   "policy": {
     "title": "นโยบาย Severity และ SLA",
@@ -318,7 +331,9 @@
     "passwordTooShortError": "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร",
     "resetPasswordErrorSummary": "ยังรีเซ็ตรหัสผ่านไม่ได้:",
     "resetPasswordFailed": "รีเซ็ตไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองใหม่",
-    "resetPasswordSuccess": "รีเซ็ตรหัสผ่านแล้ว"
+    "resetPasswordSuccess": "รีเซ็ตรหัสผ่านแล้ว",
+    "approvalLevel": "ระดับการอนุมัติ",
+    "approvalLevelHint": "ความรุนแรงสูงสุดที่คนนี้อนุมัติได้ ไม่มีใครอนุมัติคำขอของตัวเองได้"
   },
   "integrations": {
     "title": "การเชื่อมต่อ",
@@ -366,43 +381,6 @@
     "lastError": "ข้อผิดพลาดล่าสุด",
     "createdAt": "สร้างเมื่อ"
   },
-  "vex": {
-    "change": "เปลี่ยนสถานะ VEX",
-    "justification": "เหตุผลประกอบ",
-    "noJustification": "ยังไม่มีเหตุผล",
-    "justificationPlaceholder": "เช่น component_not_present, compensating_control",
-    "saveErrorSummary": "ยังบันทึกสถานะ VEX ไม่ได้:",
-    "saveFailed": "บันทึกไม่สำเร็จ กรุณาลองใหม่"
-  },
-  "waivers": {
-    "sectionTitle": "ขอผ่อนผัน (Waiver)",
-    "none": "ไม่มี",
-    "hint": "ใช้เมื่อแก้ไม่ทันกำหนดจริงๆ ระบุเหตุผลและวันสิ้นสุด แล้วทีม AppSec จะพิจารณา",
-    "requestWaiver": "ขอผ่อนผัน",
-    "submitRequest": "ส่งคำขอ",
-    "loadError": "โหลดข้อมูล Waiver ไม่ได้",
-    "status": "สถานะ",
-    "reason": "เหตุผล",
-    "expiryDate": "สิ้นสุดวันที่",
-    "requestedBy": "ผู้ขอ",
-    "approvedBy": "ผู้พิจารณา",
-    "approve": "อนุมัติ",
-    "reject": "ปฏิเสธ",
-    "revoke": "เพิกถอน",
-    "revokeConfirmTitle": "เพิกถอน Waiver นี้หรือไม่",
-    "revokeConfirmBody": "ช่องโหว่จะกลับเป็นสถานะยังไม่แก้ และใช้กำหนดแก้เดิม",
-    "decisionFailed": "บันทึกผลการพิจารณาไม่สำเร็จ กรุณาลองใหม่",
-    "createValidationError": "กรอกเหตุผลและวันสิ้นสุด",
-    "createErrorSummary": "ยังส่งคำขอไม่ได้:",
-    "createFailed": "ส่งคำขอไม่สำเร็จ อาจมี Waiver ที่รอพิจารณาหรือใช้งานอยู่แล้ว",
-    "statusValue": {
-      "pending": "รอพิจารณา",
-      "active": "ใช้งานอยู่",
-      "rejected": "ปฏิเสธแล้ว",
-      "expired": "หมดอายุ",
-      "revoked": "เพิกถอนแล้ว"
-    }
-  },
   "golive": {
     "sectionTitle": "Go-Live Gate",
     "approve": "อนุมัติ Go-Live",
@@ -415,7 +393,8 @@
     "pentestNotRequired": "ไม่ต้องทำ Pentest",
     "approver": "ผู้อนุมัติ",
     "approvedAt": "อนุมัติเมื่อ",
-    "breakGlass": "Break-glass"
+    "breakGlass": "Break-glass",
+    "referenceOnly": "ข้อมูลอ้างอิงเท่านั้น ไม่ได้บังคับใช้ — ตัวที่ block จริงคือเครื่องมือต้นทาง (RHACS, Harbor/Trivy, Inspector)"
   },
   "pentest": {
     "tabsLabel": "หมวด Pentest",
@@ -472,5 +451,216 @@
     "noCostData": "ยังไม่มีข้อมูลค่าใช้จ่าย",
     "year": "ปี",
     "totalCost": "ค่าใช้จ่ายรวม"
+  },
+  "approvalLevel": {
+    "none": "อนุมัติไม่ได้",
+    "l1": "L1 – ต่ำ/กลาง",
+    "l2": "L2 – สูง",
+    "l3": "L3 – วิกฤต / ทั้งองค์กร"
+  },
+  "controls": {
+    "title": "คลังมาตรการควบคุม",
+    "subtitle": "มาตรการความปลอดภัยที่องค์กรมี ใช้อ้างอิงเพื่อลดความรุนแรงในการยอมรับความเสี่ยง",
+    "add": "เพิ่มมาตรการ",
+    "edit": "แก้ไข",
+    "name": "มาตรการ",
+    "category": "ประเภท",
+    "effectivenessLabel": "ประสิทธิผล",
+    "owner": "ผู้รับผิดชอบ",
+    "reviewDue": "ทบทวนครั้งถัดไป",
+    "reviewDueHint": "หลังวันนี้จะอ้างอิงมาตรการนี้ไม่ได้จนกว่าจะทบทวนใหม่",
+    "reviewOverdue": "เลยกำหนดทบทวน",
+    "inactive": "ไม่ใช้งาน",
+    "evidence": "หลักฐาน",
+    "evidenceUrl": "ลิงก์หลักฐาน",
+    "description": "รายละเอียด",
+    "activeSwitch": "ใช้งานอยู่",
+    "empty": "ยังไม่มีมาตรการ",
+    "loadError": "โหลดมาตรการไม่สำเร็จ",
+    "validation": "กรอกชื่อ (อย่างน้อย 3 ตัวอักษร) ผู้รับผิดชอบ และวันทบทวน",
+    "saveFailed": "บันทึกมาตรการไม่สำเร็จ",
+    "saveErrorSummary": "ยังไม่ได้บันทึกมาตรการ",
+    "categoryValue": {
+      "network": "เครือข่าย",
+      "application": "แอปพลิเคชัน",
+      "monitoring": "การเฝ้าระวัง",
+      "process": "กระบวนการ"
+    },
+    "effectiveness": {
+      "high": "สูง",
+      "medium": "กลาง",
+      "low": "ต่ำ"
+    }
+  },
+  "deployments": {
+    "sectionTitle": "ใช้งานอยู่ที่ไหน",
+    "hint": "ปกติ pipeline บันทึกให้ นับ backlog เฉพาะเวอร์ชันที่ใช้งานอยู่",
+    "record": "บันทึกการ deploy",
+    "end": "ปลดออก",
+    "running": "ใช้งานอยู่",
+    "showHistory": "ดูประวัติ",
+    "hideHistory": "ซ่อนประวัติ",
+    "environment": "สภาพแวดล้อม",
+    "version": "เวอร์ชัน",
+    "deployedAt": "deploy เมื่อ",
+    "endedAt": "ปลดออกเมื่อ",
+    "digest": "Image digest",
+    "recordedBy": "บันทึกโดย",
+    "referenceUrl": "ลิงก์ release",
+    "referenceUrlHint": "pipeline run หรือ change ticket",
+    "digestHint": "ให้ audit จับคู่ image ที่รันกับผล scan ได้",
+    "versionHint": "เลือกเวอร์ชันที่มี หรือพิมพ์ชื่อใหม่",
+    "versionRequired": "ระบุเวอร์ชัน",
+    "empty": "ยังไม่มีการบันทึก deploy",
+    "loadError": "โหลดข้อมูล deploy ไม่สำเร็จ",
+    "recordFailed": "บันทึกการ deploy ไม่สำเร็จ",
+    "endFailed": "ปลดออกไม่สำเร็จ",
+    "errorSummary": "ยังไม่ได้บันทึกการ deploy",
+    "source": {
+      "pipeline": "pipeline",
+      "manual": "บันทึกเอง"
+    }
+  },
+  "evidence": {
+    "export": "ส่งออกหลักฐาน",
+    "hint": "ไฟล์เดียวสำหรับ audit: เวอร์ชันไหนใช้งานช่วงไหน ผล scan และข้อยกเว้นที่อนุมัติ",
+    "from": "ตั้งแต่",
+    "to": "ถึง",
+    "download": "ดาวน์โหลด",
+    "contents": "ครอบคลุม {{from}} – {{to}} รวมผล scan ล่าสุดของเวอร์ชันที่ใช้งานอยู่ตอนต้นช่วง",
+    "failed": "สร้างไฟล์หลักฐานไม่สำเร็จ",
+    "failedSummary": "ส่งออกไม่สำเร็จ",
+    "rangeInvalid": "วันเริ่มต้องไม่หลังวันสิ้นสุด"
+  },
+  "exceptions": {
+    "title": "ข้อยกเว้น",
+    "subtitle": "คำขอยอมรับความเสี่ยงหรือระบุว่าไม่เกี่ยวข้อง ทุกคำขอต้องมีคนอื่นอนุมัติ",
+    "sectionTitle": "ข้อยกเว้น",
+    "sectionHint": "ข้อยกเว้นที่อนุมัติแล้วจะปรับ SLA ของปัญหานี้ในทุกเวอร์ชันของแอป",
+    "none": "ไม่มี",
+    "request": "ขอยกเว้น",
+    "requestHint": "คำขอจะส่งไปยังผู้อนุมัติตามความรุนแรง และยังไม่มีผลจนกว่าจะอนุมัติ",
+    "view": {
+      "awaiting": "รอฉันอนุมัติ",
+      "mine": "คำขอของฉัน",
+      "all": "ทั้งหมด"
+    },
+    "viewLabel": "แสดง",
+    "statusLabel": "สถานะ",
+    "allStatuses": "ทุกสถานะ",
+    "status": {
+      "pending": "รออนุมัติ",
+      "approved": "อนุมัติแล้ว",
+      "rejected": "ไม่อนุมัติ",
+      "withdrawn": "ถอนคำขอ",
+      "expired": "หมดอายุ",
+      "revoked": "ยกเลิกแล้ว",
+      "closed": "ปิด (แก้แล้ว)"
+    },
+    "type": {
+      "risk_acceptance": "ยอมรับความเสี่ยง",
+      "false_positive": "False positive",
+      "not_affected": "ไม่ได้รับผลกระทบ"
+    },
+    "typeHint": {
+      "risk_acceptance": "ช่องโหว่มีจริงแต่จะแก้ทีหลัง อ้างมาตรการควบคุมเพื่อลดความรุนแรงได้ และต้องสิ้นสุดภายในวันครบ SLA",
+      "false_positive": "เครื่องมือแจ้งผิด — ไม่มี component หรือช่องโหว่นี้จริง",
+      "not_affected": "มี component แต่โค้ดที่มีช่องโหว่ถูกใช้โจมตีในระบบนี้ไม่ได้"
+    },
+    "decision": {
+      "approve": "อนุมัติ",
+      "reject": "ไม่อนุมัติ"
+    },
+    "tool": {
+      "rhacs": "RHACS",
+      "harbor": "Harbor",
+      "trivy": "Trivy",
+      "inspector": "AWS Inspector",
+      "sast": "SAST",
+      "other": "อื่นๆ"
+    },
+    "lookup": "ค้นหา",
+    "lookupLabel": "เลขอ้างอิง",
+    "lookupNotFound": "ไม่พบข้อยกเว้น {{reference}}",
+    "reference": "เลขอ้างอิง",
+    "covers": "ครอบคลุม",
+    "approvals": "การอนุมัติ",
+    "expiresOn": "สิ้นสุด",
+    "requestedBy": "ผู้ขอ",
+    "moreItems_one": "+อีก {{count}}",
+    "moreItems_other": "+อีก {{count}}",
+    "needsReview": "ต้องทบทวน",
+    "legacyHint": "ย้ายมาจาก waiver เดิม อนุมัติตามกฎผู้อนุมัติคนเดียวแบบเก่า",
+    "empty": "ไม่มีข้อยกเว้น",
+    "emptyAwaiting": "ไม่มีรายการรอคุณตัดสินใจ",
+    "loadError": "โหลดข้อยกเว้นไม่สำเร็จ",
+    "notFound": "ไม่พบข้อยกเว้น",
+    "backToList": "กลับไปรายการข้อยกเว้น",
+    "requestedByOn": "ขอโดย {{user}} เมื่อ {{at}}",
+    "originalSeverity": "ความรุนแรงเดิม",
+    "residualSeverity": "ความรุนแรงหลังมาตรการ",
+    "noResidual": "ไม่เปลี่ยน",
+    "reviewOn": "ทบทวนภายใน",
+    "requirement": "ต้องการ",
+    "remaining_one": "ต้องอนุมัติอีก {{count}} คน",
+    "remaining_other": "ต้องอนุมัติอีก {{count}} คน",
+    "reason": "เหตุผล",
+    "evidence": "หลักฐาน",
+    "controls": "มาตรการที่อ้างอิง",
+    "coversHint": "ครอบคลุมปัญหาเดียวกันในเวอร์ชันที่ scan ภายหลังด้วย",
+    "noDecisions": "ยังไม่มีการตัดสินใจ",
+    "bypasses": "การปล่อยผ่านที่เครื่องมือต้นทาง",
+    "noBypasses": "ยังไม่มีการบันทึก",
+    "bypassTool": "เครื่องมือ",
+    "bypassRef": "ลิงก์",
+    "bypassNote": "หมายเหตุ",
+    "bypassAt": "เมื่อ",
+    "bypassBy": "โดย",
+    "bypassHint": "บันทึกว่า DevOps ปล่อยผ่านที่ไหน โดยอ้างอิง {{reference}}",
+    "recordBypass": "บันทึกการปล่อยผ่าน",
+    "actions": "การดำเนินการ",
+    "approve": "อนุมัติ",
+    "reject": "ไม่อนุมัติ",
+    "withdraw": "ถอนคำขอ",
+    "revoke": "ยกเลิก",
+    "comment": "ความเห็น",
+    "commentHint": "ต้องระบุเมื่อไม่อนุมัติ",
+    "rejectNeedsReason": "ระบุเหตุผลที่ไม่อนุมัติ",
+    "cannotDecide": "คุณตัดสินใจรายการนี้ไม่ได้",
+    "decideFailed": "บันทึกการตัดสินใจไม่สำเร็จ",
+    "endReason": "เหตุผล",
+    "endedBy": "สิ้นสุดโดย {{user}}: {{reason}}",
+    "withdrawHint": "การถอนจะยกเลิกคำขอ SLA ของ finding ไม่เปลี่ยน",
+    "revokeHint": "การยกเลิกมีผลทันที finding ที่ครอบคลุมจะกลับไปใช้ความรุนแรงและ SLA เดิม",
+    "form": {
+      "type": "ประเภท",
+      "currentSeverity": "ความรุนแรงปัจจุบัน",
+      "currentDue": "ครบกำหนด {{date}}",
+      "reason": "เหตุผล",
+      "reasonHint": "อย่างน้อย 10 ตัวอักษร ผู้อนุมัติและ audit จะอ่านส่วนนี้",
+      "residual": "ความรุนแรงหลังมาตรการ",
+      "residualHint": "ลดได้ไม่เกิน 2 ระดับ KEV ต้องไม่ต่ำกว่า High และต้องอ้างมาตรการอย่างน้อย 1 รายการ",
+      "keepOriginal": "คงไว้ที่ {{tier}}",
+      "controls": "มาตรการที่ช่วยลดความเสี่ยง",
+      "noControls": "ยังไม่มีมาตรการที่ใช้ได้ — ขอให้ AppSec เพิ่มในคลัง",
+      "measures": "มาตรการอื่นๆ",
+      "justification": "เหตุผลที่ไม่เกี่ยวข้อง (VEX)",
+      "selectJustification": "เลือกเหตุผล",
+      "evidence": "หลักฐาน",
+      "evidenceHint": "ลิงก์หรือบันทึกที่สนับสนุนคำขอ",
+      "expiresOn": "สิ้นสุดวันที่",
+      "expiresHint": "ไม่เกินวันครบ SLA ของความรุนแรงหลังปรับ",
+      "reviewOn": "ทบทวนภายใน",
+      "reviewHint": "ภายใน 1 ปี",
+      "submit": "ส่งขออนุมัติ",
+      "failed": "ส่งคำขอไม่สำเร็จ",
+      "errorSummary": "ยังไม่ได้ส่งคำขอ",
+      "reasonTooShort": "เขียนเหตุผลอย่างน้อย 10 ตัวอักษร",
+      "expiryRequired": "เลือกวันสิ้นสุด",
+      "justificationRequired": "เลือกเหตุผล",
+      "controlRequired": "เลือกมาตรการอย่างน้อย 1 รายการเพื่อลดความรุนแรง"
+    },
+    "requirementSingle": "อนุมัติ 1 คน (ระดับ {{min}} ขึ้นไป)",
+    "requirementMulti": "อนุมัติ {{count}} คน (ระดับ {{min}} ขึ้นไป และมี {{top}} หนึ่งคน)"
   }
 }

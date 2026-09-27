@@ -189,6 +189,27 @@ export function IconPolicy(props: IconProps) {
   )
 }
 
+/** Risk exception register: a signed-off form (Maker-Checker). */
+export function IconException(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 4h8M9 2.5h6v3H9z" />
+      <path d="M16 4h2.5v17h-13V4H8" />
+      <path d="M9 13l2 2 4-4" />
+    </Icon>
+  )
+}
+
+/** Control library: stacked layers of defence. */
+export function IconLayers(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3l9 4.5-9 4.5-9-4.5z" />
+      <path d="M3 12l9 4.5 9-4.5M3 16.5L12 21l9-4.5" />
+    </Icon>
+  )
+}
+
 export function IconAudit(props: IconProps) {
   return (
     <Icon {...props}>

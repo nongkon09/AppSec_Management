@@ -17,6 +17,13 @@ export interface Finding {
   epss: number | null
   kev_flag: boolean
   severity_tier: SeverityTier
+  /** Set while an approved risk acceptance lowers the tier; severity_tier stays the original. */
+  residual_severity_tier: SeverityTier | null
+  effective_severity_tier: SeverityTier
+  /** Same vulnerability across every version of the application. */
+  issue_key: string
+  /** SLA clock start: first detection in the application, not in this version. */
+  sla_started_on: string
   status: FindingStatus
   vex_status: VexStatus
   vex_justification: string | null
@@ -54,6 +61,7 @@ export interface FindingFilters {
   sla_status?: SlaStatusFilter
   application_id?: string
   search?: string
+  include_inactive_versions?: boolean
   skip?: number
   limit?: number
 }
@@ -83,27 +91,4 @@ export interface BacklogSummary {
   sla_compliance_percent: number | null
   by_severity: SeverityBreakdown[]
   by_application: ApplicationBacklog[]
-}
-
-export type WaiverStatus = 'pending' | 'active' | 'rejected' | 'expired' | 'revoked'
-
-export interface Waiver {
-  id: string
-  finding_id: string
-  requested_by: string
-  approved_by: string | null
-  reason: string
-  expiry_date: string
-  status: WaiverStatus
-  created_at: string
-}
-
-export interface WaiverCreateInput {
-  reason: string
-  expiry_date: string
-}
-
-export interface VexUpdateInput {
-  vex_status: VexStatus
-  vex_justification?: string | null
 }

@@ -9,9 +9,9 @@ import { Link, useParams } from 'react-router-dom'
 import { Button, ErrorSummary, FormField, SelectBox, SwitchField, TextInput } from '../../components/ui'
 import { apiErrorMessage } from '../../lib/ui-helpers'
 import { IconChevronRight } from '../../lib/icons'
-import type { Role } from '../auth/types'
+import type { ApprovalLevel, Role } from '../auth/types'
 import { fetchUser, resetPassword, updateUser } from './api'
-import { ROLES } from '../auth/roles'
+import { APPROVAL_LEVELS, ROLES } from '../auth/roles'
 
 export function UserDetailPage() {
   const { t } = useTranslation()
@@ -76,7 +76,15 @@ export function UserDetailPage() {
 function EditUserForm({
   user,
 }: {
-  user: { id: string; full_name: string; email: string; role: Role; owner_team: string | null; is_active: boolean }
+  user: {
+    id: string
+    full_name: string
+    email: string
+    role: Role
+    owner_team: string | null
+    is_active: boolean
+    approval_level: ApprovalLevel
+  }
 }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -85,9 +93,13 @@ function EditUserForm({
   const [role, setRole] = useState<Role>(user.role)
   const [ownerTeam, setOwnerTeam] = useState(user.owner_team ?? '')
   const [isActive, setIsActive] = useState(user.is_active)
+  const [approvalLevel, setApprovalLevel] = useState<ApprovalLevel>(user.approval_level)
   const [validationError, setValidationError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const errorSummaryRef = useRef<HTMLDivElement>(null)
+
+  // Only AppSec and Management act as Checkers (docs/risk-exception-design.md 3.5).
+  const canHoldLevel = role === 'appsec' || role === 'management'
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -97,6 +109,7 @@ function EditUserForm({
         role,
         owner_team: role === 'dev_team' ? ownerTeam.trim() : null,
         is_active: isActive,
+        approval_level: canHoldLevel ? approvalLevel : 'none',
       }),
     onSuccess: (updated) => {
       queryClient.setQueryData(['user', user.id], updated)
@@ -142,6 +155,15 @@ function EditUserForm({
             <FormField label={t('inventory.ownerTeam')}>
               <TextInput value={ownerTeam} onChange={(e) => setOwnerTeam(e.target.value)} required />
             </FormField>
+          )}
+          {canHoldLevel && (
+            <FormField label={t('users.approvalLevel')} hint={t('users.approvalLevelHint')}>
+            <SelectBox
+              value={approvalLevel}
+              onChange={setApprovalLevel}
+              options={APPROVAL_LEVELS.map((l) => ({ value: l, label: t(`approvalLevel.${l}`) }))}
+            />
+          </FormField>
           )}
         </div>
         <SwitchField checked={isActive} onChange={setIsActive}>

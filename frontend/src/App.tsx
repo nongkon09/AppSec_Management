@@ -6,7 +6,10 @@ import { AuthProvider } from './features/auth/AuthContext'
 import { LoginPage } from './features/auth/LoginPage'
 import { RequireAuth } from './features/auth/RequireAuth'
 import { RequireCapability } from './features/auth/RequireCapability'
+import { ControlsPage } from './features/controls/ControlsPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { ExceptionDetailPage } from './features/exceptions/ExceptionDetailPage'
+import { ExceptionsPage } from './features/exceptions/ExceptionsPage'
 import { FindingDetailPage } from './features/findings/FindingDetailPage'
 import { FindingsBacklogPage } from './features/findings/FindingsBacklogPage'
 import { ApplicationDetailPage } from './features/inventory/ApplicationDetailPage'
@@ -64,6 +67,30 @@ function App() {
                         element={
                           <RequireCapability capability="viewFindings">
                             <FindingDetailPage />
+                          </RequireCapability>
+                        }
+                      />
+                      <Route
+                        path="exceptions"
+                        element={
+                          <RequireCapability capability="viewExceptions">
+                            <ExceptionsPage />
+                          </RequireCapability>
+                        }
+                      />
+                      <Route
+                        path="exceptions/:exceptionId"
+                        element={
+                          <RequireCapability capability="viewExceptions">
+                            <ExceptionDetailPage />
+                          </RequireCapability>
+                        }
+                      />
+                      <Route
+                        path="controls"
+                        element={
+                          <RequireCapability capability="viewControls">
+                            <ControlsPage />
                           </RequireCapability>
                         }
                       />

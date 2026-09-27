@@ -168,7 +168,15 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-size: var(--font-size-base);
+  /* Room for Thai above/below-base vowels and tone marks, which "normal" clips. */
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.35;
 }
 
 h1,

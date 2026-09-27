@@ -308,10 +308,23 @@
   margin: 0;
 }
 
+/* A one-line explanation under a heading sits close to it. The heading gives up its own
+ * bottom margin rather than the hint pulling itself up with a negative margin: that
+ * overlapped whenever the heading had no margin to give (inside .section-head), and
+ * Thai stacked vowels and tone marks collided with the line above. */
+.section-title:has(+ .field-hint),
+.section-head:has(+ .field-hint) {
+  margin-bottom: var(--space-1);
+}
+
 .section-head + .field-hint,
 .section-title + .field-hint {
-  margin-top: calc(-1 * var(--space-2));
+  margin-top: 0;
   margin-bottom: var(--space-3);
+}
+
+.section-head .section-title + .field-hint {
+  margin: 2px 0 0;
 }
 
 .card {
@@ -478,6 +491,7 @@ a.btn-secondary:hover {
 .field-hint {
   margin: 0;
   font-size: var(--font-size-xs);
+  line-height: 1.5;
   color: var(--color-text-muted);
 }
 
@@ -571,7 +585,8 @@ a.btn-secondary:hover {
   gap: var(--space-4);
 }
 
-.form-grid .field-wide {
+.form-grid .field-wide,
+.detail-grid .field-wide {
   grid-column: 1 / -1;
 }
 
@@ -1021,7 +1036,7 @@ a.btn-secondary:hover {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: 0 var(--space-5) var(--space-5);
+  padding: var(--space-3) var(--space-5) var(--space-5);
 }
 
 /* --- Chips: severity, SLA, source (UXR-2) --- */
@@ -1371,8 +1386,16 @@ a.list-row:hover {
 
 .cell-chips {
   display: flex;
+  align-items: center;
   gap: var(--space-1);
   flex-wrap: wrap;
+}
+
+/* Inside a table row the chips read as one value (High → Medium, Pending + legacy);
+ * wrapping them stacks badges and makes rows uneven. */
+td > .cell-chips {
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .audit-value {

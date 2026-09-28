@@ -12,6 +12,7 @@ from app.modules.integrations.router import router as integrations_router
 from app.modules.inventory.router import router as inventory_router
 from app.modules.pentest.router import router as pentest_router
 from app.modules.policy.router import router as policy_router
+from app.modules.reports.router import router as reports_router
 from app.modules.sbom.router import router as sbom_router
 from app.modules.users.router import router as users_router
 
@@ -30,3 +31,4 @@ api_router.include_router(deployments_router)
 api_router.include_router(exceptions_router)
 api_router.include_router(controls_router)
 api_router.include_router(evidence_router)
+api_router.include_router(reports_router)

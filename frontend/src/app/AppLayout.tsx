@@ -28,6 +28,7 @@ import {
   IconMoon,
   IconPackage,
   IconPolicy,
+  IconReport,
   IconSettings,
   IconSun,
   IconTarget,
@@ -50,6 +51,7 @@ const PRIMARY_NAV: NavItem[] = [
   { to: '/exceptions', labelKey: 'nav.exceptions', capability: 'viewExceptions', Icon: IconException },
   { to: '/applications', labelKey: 'nav.inventory', capability: 'viewInventory', Icon: IconInventory },
   { to: '/pentest/board', labelKey: 'nav.pentest', capability: 'viewPentestProjects', Icon: IconTarget },
+  { to: '/reports', labelKey: 'nav.reports', capability: 'viewReports', Icon: IconReport },
 ]
 
 const SECONDARY_NAV: NavItem[] = [

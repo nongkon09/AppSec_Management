@@ -210,6 +210,16 @@ export function IconLayers(props: IconProps) {
   )
 }
 
+/** Monthly report: a page with a small bar chart. */
+export function IconReport(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M10 17v-3M13 17v-6M16 17v-4" />
+    </Icon>
+  )
+}
+
 export function IconAudit(props: IconProps) {
   return (
     <Icon {...props}>

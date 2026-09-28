@@ -2177,3 +2177,226 @@ a.list-row:hover .list-row-title {
 .plan-suggestion .btn {
   color: var(--color-primary);
 }
+
+/* --- Executive summary report --- */
+
+.report-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.report-header {
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.report-kicker {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.report-title {
+  margin: var(--space-1) 0;
+  font-size: var(--font-size-xl);
+}
+
+.report-partial {
+  margin: 0 0 var(--space-1);
+  font-size: 13px;
+  color: var(--color-warning);
+}
+
+.report-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.report-section-title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.key-messages {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.report-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: var(--space-4);
+}
+
+.delta {
+  color: var(--color-text-muted);
+}
+
+.delta-good {
+  color: var(--color-success);
+}
+
+.delta-bad {
+  color: var(--color-danger);
+}
+
+.trend {
+  margin: 0;
+}
+
+.trend svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.trend-legend {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.series-found {
+  fill: var(--series-found);
+  background: var(--series-found);
+}
+
+.series-fixed {
+  fill: var(--series-fixed);
+  background: var(--series-fixed);
+}
+
+.trend-baseline {
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+}
+
+.trend-axis {
+  font-size: 11px;
+  fill: var(--color-text-muted);
+}
+
+.trend-value {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--color-text);
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.report-table th,
+.report-table td {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  font-weight: 400;
+}
+
+.report-table thead th {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.report-table .numeric {
+  text-align: right;
+}
+
+.report-table tbody tr:last-child > * {
+  border-bottom: none;
+}
+
+.report-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.report-facts dt {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.report-facts dd {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg);
+}
+
+.report-notes {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.report-notes p {
+  margin: 0 0 var(--space-1);
+}
+
+/* Print / Save as PDF: the report alone, on light paper, sections kept whole. */
+@media print {
+  :root {
+    color-scheme: light;
+  }
+
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  body {
+    background: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .topbar,
+  .sidebar,
+  .skip-link,
+  .no-print {
+    display: none !important;
+  }
+
+  .app-content {
+    padding: 0;
+  }
+
+  .page {
+    max-width: none;
+  }
+
+  .report-section,
+  .report-kpis,
+  .card,
+  tr {
+    break-inside: avoid;
+  }
+
+  .report a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

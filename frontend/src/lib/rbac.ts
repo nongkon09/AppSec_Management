@@ -33,6 +33,7 @@ export type Capability =
   | 'manageControls'
   | 'recordDeployment'
   | 'exportEvidence'
+  | 'viewReports'
   | 'viewGoLiveGate'
   | 'approveGoLive'
   | 'viewPentestProjects'
@@ -76,6 +77,8 @@ const CAPABILITIES: Record<Capability, readonly Role[]> = {
   manageControls: ['appsec'],
   recordDeployment: ['dev_team', 'appsec', 'admin'],
   exportEvidence: ['appsec', 'audit', 'management', 'admin', 'dev_team'],
+  // Monthly executive summary; a Dev Team reader gets their own team's figures.
+  viewReports: ['appsec', 'management', 'audit', 'admin', 'dev_team'],
   viewGoLiveGate: ['appsec', 'dev_team', 'management', 'audit', 'admin'],
   approveGoLive: ['appsec', 'admin'],
   viewPentestProjects: ['appsec', 'dev_team', 'management', 'audit', 'admin'],

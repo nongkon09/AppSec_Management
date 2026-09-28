@@ -8,6 +8,7 @@ import { RequireAuth } from './features/auth/RequireAuth'
 import { RequireCapability } from './features/auth/RequireCapability'
 import { ControlsPage } from './features/controls/ControlsPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { ExecutiveSummaryPage } from './features/reports/ExecutiveSummaryPage'
 import { ExceptionDetailPage } from './features/exceptions/ExceptionDetailPage'
 import { ExceptionsPage } from './features/exceptions/ExceptionsPage'
 import { FindingDetailPage } from './features/findings/FindingDetailPage'
@@ -91,6 +92,14 @@ function App() {
                         element={
                           <RequireCapability capability="viewControls">
                             <ControlsPage />
+                          </RequireCapability>
+                        }
+                      />
+                      <Route
+                        path="reports"
+                        element={
+                          <RequireCapability capability="viewReports">
+                            <ExecutiveSummaryPage />
                           </RequireCapability>
                         }
                       />

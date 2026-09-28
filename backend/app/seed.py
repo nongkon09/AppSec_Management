@@ -212,7 +212,7 @@ def _seed_demo(db: Session) -> None:
                 version=comp_version,
                 license="Apache-2.0" if "org.apache" in name else "MIT",
                 scope=scope,
-                purl=f"pkg:maven/{name}@{comp_version}",
+                purl=f"pkg:maven/{name.replace(':', '/')}@{comp_version}",
             )
             db.add(component)
             db.flush()

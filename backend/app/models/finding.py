@@ -84,7 +84,13 @@ def purl_package(purl: str | None) -> str | None:
     base = purl.split("#", 1)[0].split("?", 1)[0]
     if "@" in base:
         base = base.rsplit("@", 1)[0]
-    return base.strip().lower() or None
+    base = base.strip().lower()
+    # Maven coordinates are sometimes written `group:artifact` instead of the purl form
+    # `group/artifact`; both name the same package, so both must give the same issue key.
+    maven = "pkg:maven/"
+    if base.startswith(maven) and "/" not in base[len(maven) :]:
+        base = maven + base[len(maven) :].replace(":", "/", 1)
+    return base or None
 
 
 def build_issue_key(

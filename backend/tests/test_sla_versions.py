@@ -215,3 +215,25 @@ class TestDeployments:
         assert rows["total"] == 2  # one row per active version
         summary = client.get("/api/v1/findings/summary", headers=appsec).json()
         assert summary["total_open"] == 1  # one issue
+
+
+def test_maven_colon_and_slash_purls_share_an_issue_key():
+    """`group:artifact` and the purl form `group/artifact` name one package, so a
+    vulnerability found by two tools that write them differently is one issue."""
+    from app.models.finding import FindingSource, build_issue_key
+
+    colon = build_issue_key(
+        FindingSource.SBOM,
+        component_name="log4j-core",
+        cve_id="CVE-2021-44228",
+        title=None,
+        purl="pkg:maven/org.apache.logging.log4j:log4j-core@2.14.1",
+    )
+    slash = build_issue_key(
+        FindingSource.SBOM,
+        component_name="log4j-core",
+        cve_id="CVE-2021-44228",
+        title=None,
+        purl="pkg:maven/org.apache.logging.log4j/log4j-core@2.17.1?type=jar",
+    )
+    assert colon == slash == "sbom:pkg:maven/org.apache.logging.log4j/log4j-core:cve-2021-44228"

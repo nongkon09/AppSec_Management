@@ -137,7 +137,7 @@ docker compose logs --tail 20 worker     # เห็น "Background jobs: Depend
 | # | ใคร | ทำอะไร | ที่ไหน |
 | --- | --- | --- | --- |
 | 1 | Admin | เปลี่ยนรหัสผ่าน admin แล้ว **ลบบรรทัด `INITIAL_ADMIN_PASSWORD` ออกจาก `.env`** (ใช้เฉพาะตอนฐานข้อมูลว่าง) | ตั้งค่า → ผู้ใช้ → admin → ตั้งรหัสใหม่ |
-| 2 | Admin | สร้างผู้ใช้จริงและกำหนด **ระดับการอนุมัติ** (ดูตารางด้านล่าง) | ตั้งค่า → ผู้ใช้ |
+| 2 | Admin | สร้างผู้ใช้จริงและกำหนด **ระดับการอนุมัติ** (ดูตารางด้านล่าง) หรือเชื่อม **Entra ID** ให้ผู้ใช้เข้าด้วย Microsoft และได้ role ตามกลุ่ม ([entra-id.md](entra-id.md)) | ตั้งค่า → ผู้ใช้ / Entra ID |
 | 3 | Admin | สร้างบัญชี pipeline: role `CI/CD pipeline`, รหัสผ่านยาว, เก็บใน secret store ของ CI | ตั้งค่า → ผู้ใช้ |
 | 4 | Admin | ตั้ง ITSM/Jira ถ้าใช้ | ตั้งค่า → การเชื่อมต่อ |
 | 5 | AppSec | ตรวจ/ปรับนโยบาย Severity/SLA (ฉบับตั้งต้นคือ version 1) | นโยบาย |
@@ -232,6 +232,10 @@ docker compose up -d
 | `IMAGE_PREFIX` | appsec-platform | ชื่อ registry ถ้า push image เข้า registry ขององค์กร |
 | `DTRACK_MEMORY_LIMIT` | 6g | RAM สูงสุดของ DT (ห้ามต่ำกว่า 4.5g) |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | 480 | อายุ session |
+| `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET` | – | เข้าสู่ระบบด้วย Microsoft (ตั้งครบ 3 ตัวถึงเปิด) ดู [entra-id.md](entra-id.md) |
+| `ENTRA_JIT_PROVISIONING` | true | สร้างบัญชีตอนเข้าครั้งแรกถ้าตรงการกำหนดบทบาท |
+| `SCIM_BEARER_TOKEN` | – | เปิด SCIM provisioning จาก Entra ID |
+| `LOCAL_LOGIN_ENABLED` | true | false = รหัสผ่านภายในใช้ได้เฉพาะผู้ดูแลระบบและ CI/CD |
 | `SBOM_SYNC_INTERVAL_HOURS` | 6 | รอบ sync จาก DT |
 | `STALE_SBOM_DAYS` | 90 | ไม่มี SBOM ใหม่กี่วันถือว่าไม่อัปเดต |
 | `EXCEPTION_SWEEP_INTERVAL_HOURS` | 24 | รอบตรวจข้อยกเว้นหมดอายุ/ปิด/ต้องทบทวน |

@@ -46,6 +46,12 @@ dashboard and backlog screens have data before SBOM ingestion (FR-2/FR-3) exists
 docker compose -f docker-compose.dev.yml exec backend python -m app.seed --demo
 ```
 
+To try **Sign in with Microsoft** or SCIM locally, put `ENTRA_TENANT_ID`,
+`ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET` (and `SCIM_BEARER_TOKEN`) in the
+git-ignored `.env` at the repo root and recreate the backend; the dev redirect
+URI is `http://localhost:8000/api/v1/auth/sso/callback`. See
+[docs/entra-id.md](docs/entra-id.md).
+
 > After pulling changes that add a migration, run `alembic upgrade head` in the
 > backend container — the dev stack only runs migrations when it starts, while
 > `uvicorn --reload` picks up new code without restarting.
@@ -60,7 +66,7 @@ docker compose -f docker-compose.dev.yml exec backend python -m app.seed --demo
 | Severity & SLA Policy | FR-4, FR-5.1, FR-5.2, §12 | Versioned effective-dated policy; CVSS+EPSS+KEV rule engine; configurable SLA per tier |
 | Finding Backlog | FR-3.3, FR-5.4, FR-10.2 | Shared backlog for SBOM/SAST/Pentest findings, filters, per-app breakdown, remediation plans |
 | Go-Live Security Gate | FR-6.1, FR-6.3, FR-6.4 | Per-Version SBOM/SAST/Pentest checklist (server re-verified, never trusts the client), approval record trail. Break-glass (FR-6.7) and version diff/trend (FR-6.6/FR-10.8) are not built |
-| Waiver / Exception workflow | FR-6.2 | Request → approve/reject → active/revoke, with an auto-expiry sweep that reopens the Finding |
+| Risk Exception register | FR-6.2, FR-8 | Maker–Checker approvals by severity/KEV/scope (levels L1–L3), residual severity backed by a Control Library, expiry bounded by the SLA (one SLA period from today once overdue), upstream-tool bypass records, daily expiry sweep. See [docs/risk-exception-design.md](docs/risk-exception-design.md) |
 | Pentest Project Management | FR-6.5 | Fixed lifecycle (Requested → ... → Closed, + Cancelled/On-hold), engagement/cost metadata, report file upload/download, retest-owner defaulting. Workflow states are fixed, not admin-configurable |
 | ITSM / Ticketing Integration | FR-7 | Pluggable connector framework (Jira implemented; ServiceDesk Plus/generic webhook are configurable but not wired to a real API), routing policy by severity, manual ticket creation, retry-on-failure |
 | VEX & Exception Management | FR-8.1, FR-8.2, FR-8.3 | Per-Finding VEX status (AppSec/Admin-only), Global Suppression across every Application sharing a CVE. Global Suppression has no dedicated frontend screen yet (API-only) |
@@ -68,13 +74,15 @@ docker compose -f docker-compose.dev.yml exec backend python -m app.seed --demo
 | Pentest Reporting | FR-10.6, FR-10.7 | Org-wide Engagement Report (cost gated to AppSec/Admin/Management) and Project Board |
 | Audit Trail | FR-11.1, FR-11.2 | Append-only log with before/after values, filters, CSV export |
 | User & Integration Administration | Section 4 | User/Role management, Integration Connector configuration (Admin-only) |
+| Microsoft Entra ID | Section 4, Section 7 | Sign in with Microsoft (OIDC code flow + PKCE), SCIM 2.0 provisioning, role from Entra app roles or group membership via admin-managed role mappings; local break-glass admin. See [docs/entra-id.md](docs/entra-id.md) |
+| Executive summary | FR-10.3 | Monthly report per organisation or team, print / save as PDF |
 | Accessibility | UXR-1, UXR-2, UXR-6, UXR-7 | Light/dark themes, icon+label severity chips, role-scoped navigation, error summaries |
 
 Not yet built: License compliance policy (FR-9, though `Component.license` is
 already captured from SBOM/SPDX), Application Version history/diff/trend
 charts (FR-6.6, FR-10.8), Go-Live break-glass override (FR-6.7), manual Finding
-intake UI (SAST/Pentest finding creation exists as an API only), SSO
-(Section 7), Management KPI export to PDF/Excel (FR-10.3), Compliance/Audit
+intake UI (SAST/Pentest finding creation exists as an API only), SAML 2.0
+sign-in (Entra ID uses OIDC instead), Management KPI export to Excel (FR-10.3), Compliance/Audit
 read-only export view beyond the existing Audit Trail CSV export (FR-10.4).
 
 ### SBOM ingestion notes (FR-2, FR-3)
@@ -193,8 +201,10 @@ backend/               FastAPI application, Alembic migrations, tests
   app/core/            config, DB session, security, RBAC deps, audit helper,
                        background scheduler
   app/models/          SQLAlchemy models (Section 8 entities)
-  app/modules/         one package per bounded context (auth, inventory,
-                       policy, findings, sbom, users, integrations, waivers,
+  app/modules/         one package per bounded context (auth, directory
+                       [Entra ID sign-in, SCIM, role mappings], inventory,
+                       policy, findings, sbom, users, integrations,
+                       exceptions, controls, deployments, evidence, reports,
                        golive, pentest, audit)
   app/integrations/    pluggable SCA/ITSM connector interfaces + implementations
   app/schemas/         Pydantic request/response models
@@ -206,7 +216,8 @@ frontend/              Vite + React + TypeScript application
 deploy/postgres-init/  DB init scripts for local Docker Compose (Dependency-Track DB)
 deploy/production/     Production pack: compose (app + Dependency-Track), install,
                        DT bootstrap, backup and offline-bundle scripts
-docs/                  Deployment guide, workflows, risk-exception design (Thai)
+docs/                  Deployment guide, workflows, risk-exception design,
+                       Entra ID setup (Thai)
 docker-compose.dev.yml Local development stack (bind-mounted source, hot reload)
 Requirement.md         Authoritative BRD/FRS specification
 ```
@@ -223,5 +234,10 @@ Requirement.md         Authoritative BRD/FRS specification
 - **Scoping fails closed.** Dev Team queries are filtered by `owner_team` in the
   service layer; a Dev Team user with no team assigned sees nothing rather than
   everything (Section 4). Frontend capability checks are usability only.
+- **The directory decides access, the database enforces it.** An Entra ID
+  account's role is recomputed from its app roles and groups whenever SCIM, a
+  sign-in or a role mapping changes it, and every request re-reads the role from
+  the database, so removing someone from a group takes effect without waiting
+  for their token to expire. SCIM can never see or change a local account.
 - **Colour is never the only signal.** Severity and SLA state always render an
   icon and a text label (UXR-2, WCAG 1.4.1).

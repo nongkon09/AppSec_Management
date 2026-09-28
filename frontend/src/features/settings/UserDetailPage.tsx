@@ -7,10 +7,13 @@ import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { Button, ErrorSummary, FormField, SelectBox, SwitchField, TextInput } from '../../components/ui'
+import { formatDateTime } from '../../lib/format'
 import { apiErrorMessage } from '../../lib/ui-helpers'
 import { IconChevronRight } from '../../lib/icons'
 import type { ApprovalLevel, Role } from '../auth/types'
 import { fetchUser, resetPassword, updateUser } from './api'
+import { fetchDirectoryAccount } from './directoryApi'
+import type { PlatformUser } from './types'
 import { APPROVAL_LEVELS, ROLES } from '../auth/roles'
 
 export function UserDetailPage() {
@@ -57,6 +60,7 @@ export function UserDetailPage() {
           ) : (
             <span className="chip chip-sla-none">{t('users.inactive')}</span>
           )}
+          {user.auth_source === 'entra' && <span className="chip">{t('users.sourceEntra')}</span>}
         </div>
         <h1>{user.full_name}</h1>
         <p className="detail-subtitle">
@@ -67,8 +71,14 @@ export function UserDetailPage() {
       {/* Keyed on the user id: navigating to a different user gives a fresh form; an
           update on this one does not remount it (which would wipe the "saved"
           confirmation) since the key does not change. */}
-      <EditUserForm key={user.id} user={user} />
-      <ResetPasswordForm userId={user.id} />
+      {user.auth_source === 'entra' ? (
+        <EntraAccount key={user.id} user={user} />
+      ) : (
+        <>
+          <EditUserForm key={user.id} user={user} />
+          <ResetPasswordForm userId={user.id} />
+        </>
+      )}
     </div>
   )
 }
@@ -80,7 +90,7 @@ function EditUserForm({
     id: string
     full_name: string
     email: string
-    role: Role
+    role: Role | null
     owner_team: string | null
     is_active: boolean
     approval_level: ApprovalLevel
@@ -90,7 +100,7 @@ function EditUserForm({
   const queryClient = useQueryClient()
   const [fullName, setFullName] = useState(user.full_name)
   const [email, setEmail] = useState(user.email)
-  const [role, setRole] = useState<Role>(user.role)
+  const [role, setRole] = useState<Role>(user.role ?? 'dev_team')
   const [ownerTeam, setOwnerTeam] = useState(user.owner_team ?? '')
   const [isActive, setIsActive] = useState(user.is_active)
   const [approvalLevel, setApprovalLevel] = useState<ApprovalLevel>(user.approval_level)
@@ -180,6 +190,85 @@ function EditUserForm({
           )}
         </div>
       </form>
+    </section>
+  )
+}
+
+/**
+ * An Entra ID account: its role comes from app roles / groups through the mappings on the
+ * Entra ID tab, so here it is shown, not edited. The on/off switch stays as an emergency
+ * lock (the next SCIM sync may switch it back on; disable the person in Entra too).
+ */
+function EntraAccount({ user }: { user: PlatformUser }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [isActive, setIsActive] = useState(user.is_active)
+  const { data: account } = useQuery({
+    queryKey: ['directory-account', user.id],
+    queryFn: () => fetchDirectoryAccount(user.id),
+  })
+  const mutation = useMutation({
+    mutationFn: (active: boolean) => updateUser(user.id, { is_active: active }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['user', user.id], updated)
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
+
+  return (
+    <section aria-labelledby="entra-heading" className="card card-pad">
+      <h2 id="entra-heading" className="section-title">
+        {t('users.entraSection')}
+      </h2>
+      <p className="field-hint section-gap">{t('users.entraHint')}</p>
+      <dl className="detail-grid section-gap">
+        <div>
+          <dt>{t('users.role')}</dt>
+          <dd>{user.role ? t(`roles.${user.role}`) : <span className="muted">{t('users.noRole')}</span>}</dd>
+        </div>
+        <div>
+          <dt>{t('users.approvalLevel')}</dt>
+          <dd>{user.approval_level === 'none' ? '—' : t(`approvalLevel.${user.approval_level}`)}</dd>
+        </div>
+        <div>
+          <dt>{t('inventory.ownerTeam')}</dt>
+          <dd>{user.owner_team ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>{t('users.lastLogin')}</dt>
+          <dd>{user.last_login_at ? formatDateTime(user.last_login_at) : t('users.neverSignedIn')}</dd>
+        </div>
+        <div className="field-wide">
+          <dt>{t('users.entraGroups')}</dt>
+          <dd>
+            {account && account.groups.length > 0
+              ? account.groups.map((group) => group.display_name ?? group.external_id).join(', ')
+              : '—'}
+          </dd>
+        </div>
+        <div className="field-wide">
+          <dt>{t('users.entraAppRoles')}</dt>
+          <dd>{account && account.app_roles.length > 0 ? account.app_roles.join(', ') : '—'}</dd>
+        </div>
+      </dl>
+      {account && account.matched.length === 0 && (
+        <p className="field-hint section-gap">{t('users.noMappingHint')}</p>
+      )}
+      <SwitchField
+        checked={isActive}
+        disabled={mutation.isPending}
+        onChange={(on) => {
+          setIsActive(on)
+          mutation.mutate(on)
+        }}
+      >
+        {t('users.activeSwitch')}
+      </SwitchField>
+      {mutation.isError && (
+        <p className="form-error" role="alert">
+          {apiErrorMessage(mutation.error, t('users.updateFailed'))}
+        </p>
+      )}
     </section>
   )
 }

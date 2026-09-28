@@ -5,6 +5,7 @@ import { AuditTrailPage } from './features/audit/AuditTrailPage'
 import { AuthProvider } from './features/auth/AuthContext'
 import { LoginPage } from './features/auth/LoginPage'
 import { RequireAuth } from './features/auth/RequireAuth'
+import { SsoCallbackPage } from './features/auth/SsoCallbackPage'
 import { RequireCapability } from './features/auth/RequireCapability'
 import { ControlsPage } from './features/controls/ControlsPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
@@ -19,6 +20,7 @@ import { PentestBoardPage } from './features/pentest/PentestBoardPage'
 import { PentestReportPage } from './features/pentest/PentestReportPage'
 import { PolicyPage } from './features/policy/PolicyPage'
 import { SbomIngestionPage } from './features/sbom/SbomIngestionPage'
+import { DirectoryPage } from './features/settings/DirectoryPage'
 import { IntegrationsPage } from './features/settings/IntegrationsPage'
 import { UserDetailPage } from './features/settings/UserDetailPage'
 import { UsersListPage } from './features/settings/UsersListPage'
@@ -41,6 +43,7 @@ function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/login/sso" element={<SsoCallbackPage />} />
             <Route
               path="/*"
               element={
@@ -172,6 +175,14 @@ function App() {
                         element={
                           <RequireCapability capability="manageUsers">
                             <UserDetailPage />
+                          </RequireCapability>
+                        }
+                      />
+                      <Route
+                        path="settings/directory"
+                        element={
+                          <RequireCapability capability="manageUsers">
+                            <DirectoryPage />
                           </RequireCapability>
                         }
                       />

@@ -74,10 +74,13 @@ export function UsersListPage() {
                 <tr key={user.id}>
                   <th scope="row" className="sticky-column">
                     <Link to={`/settings/users/${user.id}`}>{user.full_name}</Link>
-                    <span className="cell-sub mono">{user.username}</span>
+                    <span className="cell-sub">
+                      <span className="mono">{user.username}</span>
+                      {user.auth_source === 'entra' && <> · {t('users.sourceEntra')}</>}
+                    </span>
                   </th>
                   <td className="mono">{user.email}</td>
-                  <td>{t(`roles.${user.role}`)}</td>
+                  <td>{user.role ? t(`roles.${user.role}`) : <span className="muted">{t('users.noRole')}</span>}</td>
                   <td>
                     {user.approval_level === 'none' ? (
                       <span className="muted">—</span>

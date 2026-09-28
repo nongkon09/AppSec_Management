@@ -55,6 +55,8 @@ docker compose -f docker-compose.dev.yml exec backend python -m app.seed --demo
 
 สลับภาษา ไทย/English, โหมดมืด/สว่าง และออกจากระบบ ได้จากเมนูที่ชื่อผู้ใช้มุมขวาบน
 
+> เข้าสู่ระบบด้วย Microsoft (Entra ID) ปิดอยู่ใน dev จนกว่าจะใส่ `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET` (และ `SCIM_BEARER_TOKEN` ถ้าจะลอง SCIM) ใน `.env` ที่ root แล้ว `docker compose -f docker-compose.dev.yml up -d backend` redirect URI สำหรับ dev คือ `http://localhost:8000/api/v1/auth/sso/callback` ขั้นตอนเต็มดูที่ [docs/entra-id.md](docs/entra-id.md)
+
 ### เรียก API โดยตรง
 
 ```bash

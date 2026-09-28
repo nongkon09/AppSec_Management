@@ -17,6 +17,12 @@ export function SettingsTabs() {
         {t('nav.settingsUsers')}
       </NavLink>
       <NavLink
+        to="/settings/directory"
+        className={({ isActive }) => (isActive ? 'route-tab active' : 'route-tab')}
+      >
+        {t('nav.settingsDirectory')}
+      </NavLink>
+      <NavLink
         to="/settings/integrations"
         className={({ isActive }) => (isActive ? 'route-tab active' : 'route-tab')}
       >

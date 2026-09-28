@@ -26,7 +26,8 @@
     "delete": "Delete",
     "download": "Download",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "edit": "Edit"
   },
   "glossary": {
     "cvssLabel": "What is CVSS?",
@@ -63,7 +64,8 @@
     "pentest": "Pentest",
     "exceptions": "Exceptions",
     "controls": "Controls",
-    "reports": "Reports"
+    "reports": "Reports",
+    "settingsDirectory": "Entra ID"
   },
   "login": {
     "title": "Sign in",
@@ -71,7 +73,20 @@
     "password": "Password",
     "submit": "Sign in",
     "submitting": "Signing in…",
-    "error": "Incorrect username or password"
+    "error": "Incorrect username or password",
+    "sso": {
+      "button": "Sign in with Microsoft",
+      "useLocal": "Use a local account instead",
+      "localAdminsOnly": "Local accounts are for the System Admin and the CI/CD account only.",
+      "useMicrosoft": "This account must sign in with Microsoft.",
+      "completing": "Signing you in…",
+      "not_assigned": "Your Microsoft account doesn't have access to this platform yet. Ask an admin to add you to a group or app role in Entra ID.",
+      "inactive": "This account is disabled. Contact your administrator.",
+      "local_conflict": "A local account already uses this name or email. Contact your administrator.",
+      "not_provisioned": "Entra ID hasn't created your account here yet. Contact your administrator.",
+      "cancelled": "Sign-in was cancelled.",
+      "sso_failed": "Couldn't sign in with Microsoft. Please try again."
+    }
   },
   "legend": {
     "severity": "Severity",
@@ -372,7 +387,16 @@
     "resetPasswordFailed": "Reset failed. Check your connection and try again.",
     "resetPasswordSuccess": "Password reset",
     "approvalLevel": "Approval level",
-    "approvalLevelHint": "How severe a risk this person may approve. Nobody can approve their own request."
+    "approvalLevelHint": "How severe a risk this person may approve. Nobody can approve their own request.",
+    "sourceEntra": "Entra ID",
+    "noRole": "No access yet",
+    "entraSection": "Access from Entra ID",
+    "entraHint": "This account's role comes from its Entra ID groups or app roles. To change it, change them in Entra ID or on the Entra ID tab.",
+    "lastLogin": "Last sign-in",
+    "neverSignedIn": "Never",
+    "entraGroups": "Groups",
+    "entraAppRoles": "App roles",
+    "noMappingHint": "None of its groups or app roles grants a role, so this account cannot sign in yet."
   },
   "integrations": {
     "title": "Integrations",
@@ -764,5 +788,54 @@
     "whenDate": "as of {{date}}",
     "partialNote": "Month in progress: figures so far, as of {{date}}.",
     "noFixes": "Nothing fixed yet this month"
+  },
+  "directory": {
+    "title": "Entra ID",
+    "subtitle": "Let people sign in with their Microsoft account and get a role from their Entra ID groups or app roles.",
+    "connection": "Connection",
+    "sso": "Sign in with Microsoft",
+    "scim": "Automatic accounts (SCIM)",
+    "localLogin": "Local passwords",
+    "localEveryone": "All local accounts",
+    "localAdminsOnly": "System Admin and CI/CD only",
+    "jit": "First sign-in without an account",
+    "jitOn": "Create it when a mapping matches",
+    "jitOff": "SCIM must create it first",
+    "on": "On",
+    "off": "Not set up",
+    "redirectUri": "Redirect URI (App registration)",
+    "scimUrl": "SCIM tenant URL (Provisioning page)",
+    "secretsHint": "The client secret and SCIM token are set in the server .env file and never shown here. Full steps: docs/entra-id.md.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyLabel": "Copy {{what}}",
+    "mappings": "Role mappings",
+    "precedence": "When someone matches several rows, the broadest role wins: System Admin › AppSec › Management › Audit › Legal › Development Team.",
+    "addMapping": "Add mapping",
+    "editMapping": "Edit mapping",
+    "empty": "No mappings yet. Entra ID users cannot sign in until at least one exists.",
+    "loadError": "Couldn't load the role mappings.",
+    "source": "In Entra ID",
+    "kind": {
+      "group": "Group",
+      "app_role": "App role"
+    },
+    "kindLabel": "Grant from",
+    "unnamedGroup": "Group (name not known yet)",
+    "pickGroup": "Pick a group Entra ID has sent",
+    "pickGroupPlaceholder": "Choose a group",
+    "groupOption": "{{name}} · {{count}} people",
+    "groupId": "Group object ID",
+    "groupIdHint": "Entra ID › Groups › pick the group › Object ID",
+    "appRoleValue": "App role value",
+    "appRoleHint": "The Value column in App registration › App roles, e.g. AppSec.Lead",
+    "groupRequired": "Pick a group or enter its object ID.",
+    "appRoleRequired": "Enter the app role value.",
+    "saveErrorSummary": "Couldn't save yet:",
+    "saveFailed": "Couldn't save. Please try again.",
+    "savedNotice_one": "Saved. {{count}} user’s access changed.",
+    "savedNotice_other": "Saved. {{count}} users’ access changed.",
+    "confirmDeleteTitle": "Delete this mapping?",
+    "confirmDeleteBody": "People who get their role only from this row lose access immediately."
   }
 }

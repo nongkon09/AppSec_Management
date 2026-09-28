@@ -1,14 +1,17 @@
-import type { ApprovalLevel, Role } from '../auth/types'
+import type { ApprovalLevel, AuthSource, Role } from '../auth/types'
 
 export interface PlatformUser {
   id: string
   username: string
   email: string
   full_name: string
-  role: Role
+  /** null: an Entra ID account that no role mapping matches yet (cannot sign in). */
+  role: Role | null
   owner_team: string | null
   is_active: boolean
   approval_level: ApprovalLevel
+  auth_source: AuthSource
+  last_login_at: string | null
   created_at: string
 }
 

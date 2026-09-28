@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import record_audit
 from app.core.security import hash_password
-from app.models.user import Role, User
+from app.models.user import AuthSource, Role, User
 from app.schemas.user import PasswordReset, UserCreate, UserUpdate
 
 
@@ -71,7 +71,7 @@ def create_user(db: Session, payload: UserCreate, actor: str) -> User:
         entity_id=user.id,
         after={
             "username": user.username,
-            "role": user.role.value,
+            "role": user.role.value if user.role else None,
             "owner_team": user.owner_team,
             "is_active": user.is_active,
             "approval_level": user.approval_level.value,
@@ -82,16 +82,29 @@ def create_user(db: Session, payload: UserCreate, actor: str) -> User:
     return user
 
 
+# Entra ID owns everything about a directory account except the local on/off switch,
+# which stays with the admin as an emergency lock (SCIM may switch it back on).
+_DIRECTORY_MANAGED = ("full_name", "email", "role", "owner_team", "approval_level")
+
+
 def update_user(db: Session, user: User, payload: UserUpdate, actor: str) -> User:
+    changes = payload.model_dump(exclude_unset=True)
+    if user.auth_source == AuthSource.ENTRA:
+        managed = [f for f in _DIRECTORY_MANAGED if f in changes and changes[f] != getattr(user, f)]
+        if managed:
+            raise ValueError(
+                "This account is managed in Entra ID; change "
+                + ", ".join(managed)
+                + " there (groups or app roles)."
+            )
     before = {
         "full_name": user.full_name,
         "email": user.email,
-        "role": user.role.value,
+        "role": user.role.value if user.role else None,
         "owner_team": user.owner_team,
         "is_active": user.is_active,
         "approval_level": user.approval_level.value,
     }
-    changes = payload.model_dump(exclude_unset=True)
     for field, value in changes.items():
         setattr(user, field, value)
 
@@ -103,7 +116,7 @@ def update_user(db: Session, user: User, payload: UserUpdate, actor: str) -> Use
     after = {
         "full_name": user.full_name,
         "email": user.email,
-        "role": user.role.value,
+        "role": user.role.value if user.role else None,
         "owner_team": user.owner_team,
         "is_active": user.is_active,
         "approval_level": user.approval_level.value,
@@ -123,6 +136,8 @@ def update_user(db: Session, user: User, payload: UserUpdate, actor: str) -> Use
 
 
 def reset_password(db: Session, user: User, payload: PasswordReset, actor: str) -> User:
+    if user.auth_source == AuthSource.ENTRA:
+        raise ValueError("This account signs in with Microsoft and has no local password.")
     user.hashed_password = hash_password(payload.new_password)
     record_audit(
         db,

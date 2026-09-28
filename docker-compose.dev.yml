@@ -35,6 +35,15 @@ services:
       DEPENDENCY_TRACK_API_KEY: ${DEPENDENCY_TRACK_API_KEY:-}
       DEPENDENCY_TRACK_UPLOAD_API_KEY: ${DEPENDENCY_TRACK_UPLOAD_API_KEY:-}
       STALE_SBOM_DAYS: "90"
+      # Entra ID sign-in and SCIM (docs/entra-id.md). Empty = off; values come from
+      # the git-ignored .env. The API is on its own port in dev.
+      APP_PUBLIC_URL: http://localhost:5173
+      API_PUBLIC_URL: http://localhost:8000
+      ENTRA_TENANT_ID: ${ENTRA_TENANT_ID:-}
+      ENTRA_CLIENT_ID: ${ENTRA_CLIENT_ID:-}
+      ENTRA_CLIENT_SECRET: ${ENTRA_CLIENT_SECRET:-}
+      SCIM_BEARER_TOKEN: ${SCIM_BEARER_TOKEN:-}
+      LOCAL_LOGIN_ENABLED: ${LOCAL_LOGIN_ENABLED:-true}
       # FR-3.1: background Dependency-Track pull-sync + staleness sweep. Off by
       # default in dev (trigger POST /api/v1/sbom/sync manually instead); set to
       # "true" once dtrack-apiserver has real projects to sync against.

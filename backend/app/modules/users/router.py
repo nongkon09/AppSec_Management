@@ -89,5 +89,10 @@ def reset_password(
     user = service.get_user(db, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    updated = service.reset_password(db, user, payload, actor=current_user.username)
+    try:
+        updated = service.reset_password(db, user, payload, actor=current_user.username)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
     return updated  # type: ignore[return-value]

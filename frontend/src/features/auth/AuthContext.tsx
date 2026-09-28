@@ -26,12 +26,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(currentUser)
   }, [])
 
+  const acceptToken = useCallback(async (token: string) => {
+    localStorage.setItem('access_token', token)
+    try {
+      setUser(await fetchCurrentUser())
+    } catch (error) {
+      localStorage.removeItem('access_token')
+      throw error
+    }
+  }, [])
+
   const logout = useCallback(() => {
     localStorage.removeItem('access_token')
     setUser(null)
   }, [])
 
-  const value = useMemo(() => ({ user, isLoading, login, logout }), [user, isLoading, login, logout])
+  const value = useMemo(
+    () => ({ user, isLoading, login, acceptToken, logout }),
+    [user, isLoading, login, acceptToken, logout],
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

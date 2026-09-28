@@ -26,7 +26,8 @@
     "delete": "ลบ",
     "download": "ดาวน์โหลด",
     "yes": "ใช่",
-    "no": "ไม่ใช่"
+    "no": "ไม่ใช่",
+    "edit": "แก้ไข"
   },
   "glossary": {
     "cvssLabel": "CVSS คืออะไร",
@@ -63,7 +64,8 @@
     "pentest": "Pentest",
     "exceptions": "ข้อยกเว้น",
     "controls": "มาตรการควบคุม",
-    "reports": "รายงาน"
+    "reports": "รายงาน",
+    "settingsDirectory": "Entra ID"
   },
   "login": {
     "title": "เข้าสู่ระบบ",
@@ -71,7 +73,20 @@
     "password": "รหัสผ่าน",
     "submit": "เข้าสู่ระบบ",
     "submitting": "กำลังเข้าสู่ระบบ…",
-    "error": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+    "error": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+    "sso": {
+      "button": "เข้าสู่ระบบด้วย Microsoft",
+      "useLocal": "ใช้บัญชีภายในแทน",
+      "localAdminsOnly": "บัญชีภายในใช้ได้เฉพาะผู้ดูแลระบบและบัญชี CI/CD",
+      "useMicrosoft": "บัญชีนี้ต้องเข้าสู่ระบบด้วย Microsoft",
+      "completing": "กำลังเข้าสู่ระบบ…",
+      "not_assigned": "บัญชี Microsoft ของคุณยังไม่ได้รับสิทธิ์ใช้ระบบนี้ ให้ผู้ดูแลเพิ่มคุณเข้ากลุ่มหรือ app role ใน Entra ID",
+      "inactive": "บัญชีนี้ถูกปิดใช้งาน ติดต่อผู้ดูแลระบบ",
+      "local_conflict": "มีบัญชีภายในที่ใช้ชื่อหรืออีเมลนี้อยู่แล้ว ติดต่อผู้ดูแลระบบ",
+      "not_provisioned": "Entra ID ยังไม่ได้สร้างบัญชีของคุณในระบบนี้ ติดต่อผู้ดูแลระบบ",
+      "cancelled": "ยกเลิกการเข้าสู่ระบบแล้ว",
+      "sso_failed": "เข้าสู่ระบบด้วย Microsoft ไม่สำเร็จ ลองใหม่อีกครั้ง"
+    }
   },
   "legend": {
     "severity": "Severity",
@@ -366,7 +381,16 @@
     "resetPasswordFailed": "รีเซ็ตไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองใหม่",
     "resetPasswordSuccess": "รีเซ็ตรหัสผ่านแล้ว",
     "approvalLevel": "ระดับการอนุมัติ",
-    "approvalLevelHint": "ความรุนแรงสูงสุดที่คนนี้อนุมัติได้ ไม่มีใครอนุมัติคำขอของตัวเองได้"
+    "approvalLevelHint": "ความรุนแรงสูงสุดที่คนนี้อนุมัติได้ ไม่มีใครอนุมัติคำขอของตัวเองได้",
+    "sourceEntra": "Entra ID",
+    "noRole": "ยังไม่มีสิทธิ์",
+    "entraSection": "สิทธิ์จาก Entra ID",
+    "entraHint": "บทบาทของบัญชีนี้มาจากกลุ่มหรือ app role ใน Entra ID ถ้าจะเปลี่ยน ให้แก้ที่ Entra ID หรือที่แท็บ Entra ID",
+    "lastLogin": "เข้าสู่ระบบล่าสุด",
+    "neverSignedIn": "ยังไม่เคยเข้า",
+    "entraGroups": "กลุ่ม",
+    "entraAppRoles": "App role",
+    "noMappingHint": "ไม่มีกลุ่มหรือ app role ที่ตั้งสิทธิ์ไว้ บัญชีนี้จึงยังเข้าระบบไม่ได้"
   },
   "integrations": {
     "title": "การเชื่อมต่อ",
@@ -757,5 +781,54 @@
     "whenDate": "ณ {{date}}",
     "partialNote": "เดือนนี้ยังไม่จบ ตัวเลขเป็นข้อมูลถึง {{date}}",
     "noFixes": "เดือนนี้ยังไม่มีรายการที่แก้"
+  },
+  "directory": {
+    "title": "Entra ID",
+    "subtitle": "ให้พนักงานเข้าสู่ระบบด้วยบัญชี Microsoft และได้บทบาทตามกลุ่มหรือ app role ใน Entra ID",
+    "connection": "การเชื่อมต่อ",
+    "sso": "เข้าสู่ระบบด้วย Microsoft",
+    "scim": "สร้าง/ปิดบัญชีอัตโนมัติ (SCIM)",
+    "localLogin": "รหัสผ่านภายใน",
+    "localEveryone": "ทุกบัญชีภายใน",
+    "localAdminsOnly": "เฉพาะผู้ดูแลระบบและ CI/CD",
+    "jit": "เข้าครั้งแรกโดยยังไม่มีบัญชี",
+    "jitOn": "สร้างบัญชีให้ ถ้าตรงกับสิทธิ์ที่ตั้งไว้",
+    "jitOff": "ต้องให้ SCIM สร้างบัญชีก่อน",
+    "on": "เปิดอยู่",
+    "off": "ยังไม่ตั้งค่า",
+    "redirectUri": "Redirect URI (ใส่ใน App registration)",
+    "scimUrl": "Tenant URL สำหรับ SCIM (ใส่ในหน้า Provisioning)",
+    "secretsHint": "Client secret และ SCIM token ตั้งในไฟล์ .env ของเซิร์ฟเวอร์ ไม่แสดงในหน้านี้ ขั้นตอนทั้งหมดอยู่ใน docs/entra-id.md",
+    "copy": "คัดลอก",
+    "copied": "คัดลอกแล้ว",
+    "copyLabel": "คัดลอก {{what}}",
+    "mappings": "การกำหนดบทบาท",
+    "precedence": "ถ้าคนหนึ่งตรงหลายแถว ระบบใช้บทบาทที่กว้างที่สุด: ผู้ดูแลระบบ › AppSec › ผู้บริหาร › Audit › Legal › ทีมพัฒนา",
+    "addMapping": "เพิ่มการกำหนดบทบาท",
+    "editMapping": "แก้ไขการกำหนดบทบาท",
+    "empty": "ยังไม่มีการกำหนดบทบาท ผู้ใช้จาก Entra ID จะยังเข้าระบบไม่ได้จนกว่าจะเพิ่มอย่างน้อยหนึ่งแถว",
+    "loadError": "โหลดการกำหนดบทบาทไม่ได้",
+    "source": "ใน Entra ID",
+    "kind": {
+      "group": "กลุ่ม",
+      "app_role": "App role"
+    },
+    "kindLabel": "ให้สิทธิ์จาก",
+    "unnamedGroup": "กลุ่ม (ยังไม่รู้ชื่อ)",
+    "pickGroup": "เลือกกลุ่มที่ Entra ID ส่งมาแล้ว",
+    "pickGroupPlaceholder": "เลือกกลุ่ม",
+    "groupOption": "{{name}} · {{count}} คน",
+    "groupId": "Object ID ของกลุ่ม",
+    "groupIdHint": "ดูได้ที่ Entra ID › Groups › เลือกกลุ่ม › Object ID",
+    "appRoleValue": "ค่า (Value) ของ app role",
+    "appRoleHint": "ตรงกับช่อง Value ใน App registration › App roles เช่น AppSec.Lead",
+    "groupRequired": "เลือกกลุ่มหรือใส่ Object ID ของกลุ่ม",
+    "appRoleRequired": "ใส่ค่า (Value) ของ app role",
+    "saveErrorSummary": "ยังบันทึกไม่ได้:",
+    "saveFailed": "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง",
+    "savedNotice_one": "บันทึกแล้ว สิทธิ์ของผู้ใช้ {{count}} คนเปลี่ยนตาม",
+    "savedNotice_other": "บันทึกแล้ว สิทธิ์ของผู้ใช้ {{count}} คนเปลี่ยนตาม",
+    "confirmDeleteTitle": "ลบการกำหนดบทบาทนี้?",
+    "confirmDeleteBody": "คนที่ได้สิทธิ์จากแถวนี้เพียงแถวเดียวจะเข้าระบบไม่ได้ทันที"
   }
 }

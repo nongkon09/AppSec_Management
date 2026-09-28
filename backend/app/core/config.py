@@ -45,6 +45,28 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://appsec:appsec@localhost:5432/appsec"
 
+    # Where users open the dashboard, and where their browser reaches the API. Behind the
+    # production nginx both are APP_PUBLIC_URL; in local dev the API is its own port.
+    # Used to build the Entra ID redirect URI and to send the browser back after sign-in.
+    app_public_url: str = "http://localhost:5173"
+    api_public_url: str = ""
+
+    # Entra ID sign-in (OIDC authorization code + PKCE, docs/entra-id.md). Sign-in with
+    # Microsoft is offered only when all three are set.
+    entra_tenant_id: str = ""
+    entra_client_id: str = ""
+    entra_client_secret: str = ""
+    entra_authority_host: str = "https://login.microsoftonline.com"
+    # Create an account on first sign-in when a role mapping matches, without waiting
+    # for SCIM. Turn off to admit only accounts SCIM has provisioned.
+    entra_jit_provisioning: bool = True
+    # SCIM 2.0 provisioning from Entra ID: the secret token entered in the enterprise
+    # app's Provisioning page. Empty disables the SCIM endpoints.
+    scim_bearer_token: str = ""
+    # False: once everyone signs in with Microsoft, only local System Admin (break-glass)
+    # and the CI/CD service account may still use a password.
+    local_login_enabled: bool = True
+
     dependency_track_base_url: str = "http://localhost:8081"
     # FR-2.7.4: the sync key is read-only (VIEW_PORTFOLIO + VIEW_VULNERABILITY). Forwarding a
     # manual/COTS SBOM (FR-2.6.1) needs BOM_UPLOAD + PROJECT_CREATION_UPLOAD, so it uses a
@@ -76,6 +98,19 @@ class Settings(BaseSettings):
     pentest_report_upload_dir: str = "uploads/pentest-reports"
     # Scan evidence: SBOM files kept alongside each scan snapshot.
     sbom_evidence_dir: str = "uploads/sbom-evidence"
+
+    @property
+    def entra_enabled(self) -> bool:
+        return bool(self.entra_tenant_id and self.entra_client_id and self.entra_client_secret)
+
+    @property
+    def scim_enabled(self) -> bool:
+        return bool(self.scim_bearer_token)
+
+    @property
+    def api_base_url(self) -> str:
+        """The API as the browser reaches it, e.g. https://appsec.example.org/api/v1."""
+        return (self.api_public_url or self.app_public_url).rstrip("/") + "/api/v1"
 
 
 @lru_cache

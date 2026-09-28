@@ -4,6 +4,7 @@ in tests) can discover every mapped table via app.core.db.Base."""
 from app.models.audit import AuditLog
 from app.models.component import Component
 from app.models.deployment import Deployment
+from app.models.directory import DirectoryGroup, DirectoryGroupMember, RoleMapping
 from app.models.finding import Finding
 from app.models.integration import IntegrationConnector
 from app.models.inventory import Application, AppVersion
@@ -24,6 +25,9 @@ __all__ = [
     "AuditLog",
     "Component",
     "Deployment",
+    "DirectoryGroup",
+    "DirectoryGroupMember",
+    "RoleMapping",
     "Finding",
     "IntegrationConnector",
     "Application",

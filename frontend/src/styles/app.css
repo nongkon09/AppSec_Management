@@ -1633,6 +1633,75 @@ td > .cell-chips {
   height: 34px;
 }
 
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-sso {
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+/* "Use a local account instead": quiet text, not a second big button. */
+.auth-switch {
+  align-self: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.auth-switch:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+/* --- Entra ID settings --- */
+
+.copy-fields {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 var(--space-3);
+}
+
+.copy-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.copy-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.copy-value {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+}
+
+.row-actions {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.section-head + .form-success {
+  margin: 0 0 var(--space-3);
+}
+
 /* --- Responsive (UXR-10: 1440 / 1024 primary, 768 tablet supported) --- */
 
 @media (max-width: 1024px) {

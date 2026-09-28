@@ -5,6 +5,8 @@ export interface AuthContextValue {
   user: CurrentUser | null
   isLoading: boolean
   login: (username: string, password: string) => Promise<void>
+  /** Store a platform token handed back by the Microsoft sign-in, then load the user. */
+  acceptToken: (token: string) => Promise<void>
   logout: () => void
 }
 

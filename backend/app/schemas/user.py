@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.models.user import ApprovalLevel, Role
+from app.models.user import ApprovalLevel, AuthSource, Role
 
 
 class UserCreate(BaseModel):
@@ -54,10 +54,13 @@ class UserOut(BaseModel):
     username: str
     email: str
     full_name: str
-    role: Role
+    # None: an Entra ID account that no role mapping matches yet.
+    role: Role | None
     owner_team: str | None
     is_active: bool
     approval_level: ApprovalLevel
+    auth_source: AuthSource
+    last_login_at: datetime | None
     created_at: datetime
 
     model_config = {"from_attributes": True}

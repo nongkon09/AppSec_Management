@@ -4,6 +4,39 @@ All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/); this project is pre-1.0, so minor
 versions may still include breaking changes.
 
+## [Unreleased]
+
+### Added
+
+- **Microsoft Entra ID**: sign in with Microsoft (OIDC authorization code flow
+  with PKCE; the backend verifies the ID token against the tenant keys, audience,
+  issuer, tenant, state and nonce), SCIM 2.0 provisioning of users and groups,
+  and role mappings that turn an Entra app role or group into a platform role,
+  approval level and owner team (Settings › Entra ID). Entra accounts have no
+  local password and cannot be edited locally except the on/off switch; SCIM
+  never sees local accounts. `LOCAL_LOGIN_ENABLED=false` leaves passwords to the
+  System Admin (break-glass) and the CI/CD account. Setup guide:
+  `docs/entra-id.md`. New settings: `APP_PUBLIC_URL`, `API_PUBLIC_URL`,
+  `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`,
+  `ENTRA_JIT_PROVISIONING`, `SCIM_BEARER_TOKEN`, `LOCAL_LOGIN_ENABLED`.
+- Migration `f3a9c1d7e2b4`: `users.role` and `users.hashed_password` become
+  nullable; new tables `directory_groups`, `directory_group_members`,
+  `role_mappings`.
+
+### Changed
+
+- A risk acceptance on a vulnerability that is already past its SLA may run
+  for one SLA period of the residual severity from today (previously none could
+  be raised). The remediation plan of an overdue finding says an exception is
+  required.
+- New dependency: `cryptography` (via `pyjwt[crypto]`), pinned in
+  `backend/constraints.txt`; rebuild images.
+
+### Fixed
+
+- Maven purls written as `group:artifact` and `group/artifact` now give the same
+  issue key, so the SLA start date carries over between versions.
+
 ## [0.3.0]
 
 ### Added

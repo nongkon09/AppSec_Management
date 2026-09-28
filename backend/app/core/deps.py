@@ -64,7 +64,9 @@ def get_current_user(
         raise credentials_error from exc
 
     user = db.query(User).filter(User.username == username, User.is_active.is_(True)).first()
-    if user is None:
+    # An Entra ID account whose groups no longer map to any role loses access at once,
+    # even with a token issued before the change.
+    if user is None or user.role is None:
         raise credentials_error
     if user.role == Role.PIPELINE and not _pipeline_may_call(request):
         raise HTTPException(

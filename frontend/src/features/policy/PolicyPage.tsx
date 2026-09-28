@@ -16,12 +16,31 @@ import { useTranslation } from 'react-i18next'
 import { SeverityBadge } from '../../components/SeverityBadge'
 import { Button, CheckboxField, ErrorSummary, FormField, SelectBox, TextInput } from '../../components/ui'
 import { useAuth } from '../auth/context'
+import { formatDate } from '../../lib/format'
 import { can } from '../../lib/rbac'
+import { SEVERITY_LABEL } from '../findings/labels'
 import type { SeverityTier } from '../findings/types'
 import { evaluateSeverity, fetchEffectivePolicy, listPolicyVersions, publishPolicyVersion } from './api'
 import type { PolicySet, SeverityEvaluationResult, SlaDays } from './types'
 
 const TIERS: SeverityTier[] = ['critical', 'high', 'medium', 'low']
+/** The seeded default policy is effective from the epoch: "since the start", not 1970. */
+const EPOCH = '1970-01-01'
+const SYSTEM_ACTOR = 'system'
+
+type Translate = (key: string, options?: Record<string, unknown>) => string
+
+function effectiveLabel(date: string, t: Translate): string {
+  return date === EPOCH ? t('policy.sinceStart') : formatDate(date)
+}
+
+function authorLabel(author: string, t: Translate): string {
+  return author === SYSTEM_ACTOR ? t('policy.systemAuthor') : author
+}
+
+function slaText(days: number | null, t: Translate): string {
+  return days === null ? t('policy.noDeadline') : t('policy.daysValue', { count: days })
+}
 
 /** Renders a rule's condition as the comparison AppSec actually reasons about. */
 function describeCondition(when: Record<string, unknown>): string {
@@ -65,8 +84,8 @@ export function PolicyPage() {
         <p className="page-sub">
           {t('policy.effectiveVersion', {
             version: effective.version,
-            date: effective.effective_from,
-            author: effective.created_by,
+            date: effectiveLabel(effective.effective_from, t),
+            author: authorLabel(effective.created_by, t),
           })}
         </p>
       </div>
@@ -144,50 +163,7 @@ export function PolicyPage() {
       {canManage && <RuleTester />}
 
       {canManage && versions && versions.length > 1 && (
-        <section aria-labelledby="history-heading">
-          <h2 id="history-heading" className="section-title">
-            {t('policy.historySection')}
-          </h2>
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col" className="numeric">
-                    {t('policy.version')}
-                  </th>
-                  <th scope="col">{t('policy.effectiveFrom')}</th>
-                  <th scope="col">{t('policy.createdBy')}</th>
-                  {TIERS.map((tier) => (
-                    <th key={tier} scope="col" className="numeric">
-                      {tier}
-                    </th>
-                  ))}
-                  <th scope="col">{t('policy.notes')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {versions.map((version) => (
-                  <tr key={version.id}>
-                    <td className="numeric mono">
-                      {version.version}
-                      {version.version === effective.version && (
-                        <span className="chip chip-source">{t('policy.current')}</span>
-                      )}
-                    </td>
-                    <td className="mono">{version.effective_from}</td>
-                    <td>{version.created_by}</td>
-                    {TIERS.map((tier) => (
-                      <td key={tier} className="numeric mono">
-                        {version.sla_days[tier] ?? '—'}
-                      </td>
-                    ))}
-                    <td className="muted">{version.notes ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <PolicyHistory versions={versions} currentVersion={effective.version} />
       )}
     </div>
   )
@@ -420,6 +396,88 @@ function RuleTester() {
           )}
         </div>
       )}
+    </section>
+  )
+}
+
+/**
+ * Version history as a timeline, newest first. Each entry shows what the version set and,
+ * against the one before it, what actually changed, so a reviewer does not have to diff
+ * a table of numbers by eye.
+ */
+function PolicyHistory({ versions, currentVersion }: { versions: PolicySet[]; currentVersion: number }) {
+  const { t } = useTranslation()
+  const ordered = [...versions].sort((a, b) => b.version - a.version)
+
+  return (
+    <section aria-labelledby="history-heading">
+      <h2 id="history-heading" className="section-title">
+        {t('policy.historySection')}
+      </h2>
+      <p className="field-hint">{t('policy.historyHint')}</p>
+      <ol className="timeline card card-pad">
+        {ordered.map((version, index) => {
+          const previous = ordered[index + 1]
+          const isCurrent = version.version === currentVersion
+          const rulesChanged =
+            previous !== undefined &&
+            JSON.stringify(previous.severity_rules) !== JSON.stringify(version.severity_rules)
+          const downgradeChanged =
+            previous !== undefined &&
+            previous.downgrade_dev_scope_findings !== version.downgrade_dev_scope_findings
+          return (
+            <li key={version.id} className={isCurrent ? 'timeline-item current' : 'timeline-item'}>
+              <span className="timeline-marker" aria-hidden="true" />
+              <div className="timeline-body">
+                <div className="timeline-head">
+                  <span className="timeline-version">v{version.version}</span>
+                  {isCurrent && <span className="chip chip-sla-within">{t('policy.current')}</span>}
+                  <span className="timeline-meta">
+                    {t('policy.historyMeta', {
+                      date: effectiveLabel(version.effective_from, t),
+                      author: authorLabel(version.created_by, t),
+                    })}
+                  </span>
+                </div>
+                {version.notes && <p className="timeline-note">{version.notes}</p>}
+                <ul className="sla-strip" aria-label={t('policy.slaSection')}>
+                  {TIERS.map((tier) => {
+                    const days = version.sla_days[tier]
+                    const before = previous?.sla_days[tier]
+                    const changed = previous !== undefined && before !== days
+                    return (
+                      <li key={tier} className={changed ? 'sla-cell changed' : 'sla-cell'}>
+                        <span className={`sla-dot sla-dot-${tier}`} aria-hidden="true" />
+                        <span className="sla-tier">{SEVERITY_LABEL[tier]}</span>
+                        <span className="sla-days">{slaText(days, t)}</span>
+                        {changed && (
+                          <span className="sla-before">
+                            {t('policy.changedFrom', { value: slaText(before ?? null, t) })}
+                          </span>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+                {(rulesChanged || downgradeChanged) && (
+                  <p className="timeline-changes">
+                    {[
+                      rulesChanged ? t('policy.rulesChanged') : null,
+                      downgradeChanged
+                        ? version.downgrade_dev_scope_findings
+                          ? t('policy.downgradeOn')
+                          : t('policy.downgradeOff')
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ol>
     </section>
   )
 }

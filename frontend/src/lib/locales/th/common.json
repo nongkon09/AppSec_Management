@@ -232,9 +232,18 @@
     "testerResult": "กฎ \"{{rule}}\" · {{days}} วัน · ครบกำหนด {{due}}",
     "downgradedForDevScope": "ลดระดับ: development scope",
     "historySection": "ประวัติเวอร์ชัน",
-    "version": "เวอร์ชัน",
-    "createdBy": "ประกาศโดย",
-    "current": "ใช้อยู่"
+    "current": "ใช้อยู่",
+    "historyHint": "เรียงจากล่าสุด ค่าที่ไฮไลต์คือค่าที่เปลี่ยนจากเวอร์ชันก่อนหน้า",
+    "historyMeta": "มีผลตั้งแต่ {{date}} · โดย {{author}}",
+    "sinceStart": "เริ่มใช้ระบบ",
+    "systemAuthor": "ระบบ (ค่าเริ่มต้น)",
+    "noDeadline": "ไม่กำหนด",
+    "daysValue_one": "{{count}} วัน",
+    "daysValue_other": "{{count}} วัน",
+    "changedFrom": "เดิม {{value}}",
+    "rulesChanged": "ปรับกฎการจัด Severity",
+    "downgradeOn": "เริ่มลดระดับ Dependency ที่ใช้เฉพาะตอนพัฒนา",
+    "downgradeOff": "เลิกลดระดับ Dependency ที่ใช้เฉพาะตอนพัฒนา"
   },
   "audit": {
     "title": "Audit Trail",

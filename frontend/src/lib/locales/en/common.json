@@ -237,9 +237,18 @@
     "testerResult": "Rule \"{{rule}}\" · {{days}} days · due {{due}}",
     "downgradedForDevScope": "Lowered: development scope",
     "historySection": "Version history",
-    "version": "Version",
-    "createdBy": "Published by",
-    "current": "current"
+    "current": "current",
+    "historyHint": "Newest first. Highlighted values changed from the version before.",
+    "historyMeta": "Effective from {{date}} · by {{author}}",
+    "sinceStart": "launch",
+    "systemAuthor": "the system (default)",
+    "noDeadline": "No deadline",
+    "daysValue_one": "{{count}} day",
+    "daysValue_other": "{{count}} days",
+    "changedFrom": "was {{value}}",
+    "rulesChanged": "Severity rules changed",
+    "downgradeOn": "Development-only dependencies now drop one level",
+    "downgradeOff": "Development-only dependencies no longer drop a level"
   },
   "audit": {
     "title": "Audit Trail",

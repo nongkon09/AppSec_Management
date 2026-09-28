@@ -1992,3 +1992,98 @@ a.brand:hover {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+/* --- Policy page: SLA editor, publish row, tester --- */
+
+.sla-form,
+.sla-editor {
+  margin-top: var(--space-4);
+}
+
+.sla-form .sla-editor {
+  margin-top: 0;
+}
+
+.sla-editor {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.sla-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto minmax(140px, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+}
+
+.sla-row + .sla-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.sla-row-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.sla-row-label {
+  cursor: pointer;
+}
+
+.sla-row-value {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+.sla-row-route {
+  justify-self: end;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.input-suffix {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.input-suffix .input {
+  width: 8ch;
+}
+
+.input-suffix-text {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.publish-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.publish-row-grow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.tester-form {
+  margin-top: var(--space-4);
+}
+
+.timeline.card {
+  padding: var(--space-4) var(--space-5);
+}
+
+/* A checkbox in a bottom-aligned toolbar sits on the same line as the inputs. */
+.toolbar > .check-field {
+  min-height: 36px;
+}

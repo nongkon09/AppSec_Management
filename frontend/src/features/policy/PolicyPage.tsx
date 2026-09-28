@@ -90,7 +90,7 @@ export function PolicyPage() {
         </p>
       </div>
 
-      <section aria-labelledby="sla-heading">
+      <section aria-labelledby="sla-heading" className="card card-pad">
         <h2 id="sla-heading" className="section-title">
           {t('policy.slaSection')}
         </h2>
@@ -102,27 +102,14 @@ export function PolicyPage() {
           // remounting on publish would wipe the "published as version N" confirmation.
           <SlaPolicyForm policy={effective} />
         ) : (
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">{t('findings.severity')}</th>
-                  <th scope="col">{t('policy.slaDays')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {TIERS.map((tier) => (
-                  <tr key={tier}>
-                    <th scope="row">
-                      <SeverityBadge tier={tier} />
-                    </th>
-                    <td className="mono">
-                      {effective.sla_days[tier] ?? t('sla.bestEffort')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="sla-editor">
+            {TIERS.map((tier) => (
+              <div key={tier} className="sla-row">
+                <SlaTier tier={tier} />
+                <span className="sla-row-value">{slaText(effective.sla_days[tier], t)}</span>
+                <span className="sla-row-route">{t(`policy.routing.${tier}`)}</span>
+              </div>
+            ))}
           </div>
         )}
       </section>
@@ -225,7 +212,7 @@ function SlaPolicyForm({ policy }: { policy: PolicySet }) {
   }
 
   return (
-    <form className="stack" onSubmit={handlePublish} noValidate>
+    <form className="stack sla-form" onSubmit={handlePublish} noValidate>
       {(formError || publishMutation.isError) && (
         <ErrorSummary
           ref={errorSummaryRef}
@@ -234,77 +221,62 @@ function SlaPolicyForm({ policy }: { policy: PolicySet }) {
         />
       )}
 
-      <div className="table-scroll">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th scope="col">{t('findings.severity')}</th>
-              <th scope="col">{t('policy.slaDays')}</th>
-              <th scope="col">{t('policy.defaultRouting')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {TIERS.map((tier) => (
-              <tr key={tier}>
-                <th scope="row">
-                  <SeverityBadge tier={tier} />
-                </th>
-                <td>
-                  <label className="visually-hidden" htmlFor={`sla-${tier}`}>
-                    {t('policy.slaDaysFor', { tier })}
-                  </label>
-                  <TextInput
-                    id={`sla-${tier}`}
-                    type="number"
-                    className="input-numeric mono"
-                    min={0}
-                    max={3650}
-                    value={slaDays[tier] ?? ''}
-                    placeholder={t('policy.bestEffortPlaceholder')}
-                    onChange={(event) =>
-                      setSlaDays({
-                        ...slaDays,
-                        [tier]: event.target.value === '' ? null : Number(event.target.value),
-                      })
-                    }
-                  />
-                </td>
-                {/* FR-7.2 routing is configured with the ITSM connectors; shown here as the
-                    Section 12 default so the two read together. */}
-                <td className="muted">{t(`policy.routing.${tier}`)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="sla-editor">
+        {TIERS.map((tier) => (
+          <div key={tier} className="sla-row">
+            <label htmlFor={`sla-${tier}`} className="sla-row-label">
+              <SlaTier tier={tier} />
+              <span className="visually-hidden">{t('policy.slaDaysFor', { tier })}</span>
+            </label>
+            <span className="input-suffix">
+              <TextInput
+                id={`sla-${tier}`}
+                type="number"
+                className="input-numeric mono"
+                min={0}
+                max={3650}
+                value={slaDays[tier] ?? ''}
+                placeholder={t('policy.bestEffortPlaceholder')}
+                onChange={(event) =>
+                  setSlaDays({
+                    ...slaDays,
+                    [tier]: event.target.value === '' ? null : Number(event.target.value),
+                  })
+                }
+              />
+              <span className="input-suffix-text">{t('policy.slaDays')}</span>
+            </span>
+            {/* FR-7.2 routing is configured with the ITSM connectors; shown here as the
+                Section 12 default so the two read together. */}
+            <span className="sla-row-route">{t(`policy.routing.${tier}`)}</span>
+          </div>
+        ))}
       </div>
 
       <CheckboxField checked={downgradeDevScope} onChange={setDowngradeDevScope}>
         {t('policy.downgradeDevScope')}
       </CheckboxField>
 
-      <div className="form-grid">
+      <div className="publish-row">
         <FormField label={t('policy.effectiveFrom')}>
           <TextInput type="date" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)} required />
         </FormField>
-        <FormField label={t('policy.notes')} className="field-wide">
+        <FormField label={t('policy.notes')} className="publish-row-grow">
           <TextInput
             value={notes}
             placeholder={t('policy.notesPlaceholder')}
             onChange={(event) => setNotes(event.target.value)}
           />
         </FormField>
-      </div>
-
-      <div className="form-actions">
         <Button type="submit" variant="primary" disabled={publishMutation.isPending}>
           {publishMutation.isPending ? t('common.saving') : t('policy.publish')}
         </Button>
-        {published !== null && (
-          <span className="form-success" role="status">
-            {t('policy.published', { version: published })}
-          </span>
-        )}
       </div>
+      {published !== null && (
+        <p className="form-success" role="status">
+          {t('policy.published', { version: published })}
+        </p>
+      )}
       <p className="field-hint">{t('policy.immutabilityNote')}</p>
     </form>
   )
@@ -335,12 +307,12 @@ function RuleTester() {
   }
 
   return (
-    <section aria-labelledby="tester-heading">
+    <section aria-labelledby="tester-heading" className="card card-pad">
       <h2 id="tester-heading" className="section-title">
         {t('policy.testerSection')}
       </h2>
       <p className="field-hint">{t('policy.testerHint')}</p>
-      <form className="card card-pad toolbar" onSubmit={handleEvaluate}>
+      <form className="toolbar tester-form" onSubmit={handleEvaluate}>
         <FormField label="CVSS">
           <TextInput
             type="number"
@@ -376,7 +348,7 @@ function RuleTester() {
         <CheckboxField checked={kev} onChange={setKev}>
           CISA KEV
         </CheckboxField>
-        <Button type="submit" variant="primary" disabled={mutation.isPending}>
+        <Button type="submit" disabled={mutation.isPending}>
           {t('policy.evaluate')}
         </Button>
       </form>
@@ -388,7 +360,7 @@ function RuleTester() {
             {t('policy.testerResult', {
               rule: result.matched_rule,
               days: result.sla_days ?? t('sla.bestEffort'),
-              due: result.due_date ?? '—',
+              due: result.due_date ? formatDate(result.due_date) : '—',
             })}
           </span>
           {result.downgraded_for_dev_scope && (
@@ -397,6 +369,16 @@ function RuleTester() {
         </div>
       )}
     </section>
+  )
+}
+
+/** Severity dot and name, the same marker the history timeline uses. */
+function SlaTier({ tier }: { tier: SeverityTier }) {
+  return (
+    <span className="sla-row-tier">
+      <span className={`sla-dot sla-dot-${tier}`} aria-hidden="true" />
+      {SEVERITY_LABEL[tier]}
+    </span>
   )
 }
 
@@ -415,7 +397,7 @@ function PolicyHistory({ versions, currentVersion }: { versions: PolicySet[]; cu
         {t('policy.historySection')}
       </h2>
       <p className="field-hint">{t('policy.historyHint')}</p>
-      <ol className="timeline card card-pad">
+      <ol className="timeline card">
         {ordered.map((version, index) => {
           const previous = ordered[index + 1]
           const isCurrent = version.version === currentVersion

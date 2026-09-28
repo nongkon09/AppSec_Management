@@ -185,12 +185,19 @@ h3 {
   letter-spacing: -0.015em;
 }
 
-/* Underline is left at the browser default (not `text-decoration: none`): most links
- * here sit inline in plain text (KPI card meta, breadcrumbs, table cells) with no other
- * visual marker, so removing the underline would leave color as their only indicator
- * (WCAG 1.4.1). Only self-contained nav/button-style links override it locally. */
+/* Links: blue with no underline; the underline appears on hover and keyboard focus.
+ * Links that name an item (table cells, lists, breadcrumbs) go further and take the
+ * surrounding text colour: see "Item links" in app.css. Their position (the first
+ * column of a row that highlights on hover) is what marks them as clickable. */
 a {
   color: var(--color-primary);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
 }
 
 a:hover {

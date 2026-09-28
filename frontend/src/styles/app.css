@@ -1364,8 +1364,31 @@ a.list-row:hover {
   font-weight: 500;
 }
 
-.data-table a {
+/* Item links: an item's name in a table, list or breadcrumb reads as plain text and
+ * only turns blue with an underline on hover or keyboard focus. */
+.data-table a,
+.list-row-title,
+.breadcrumb a,
+.heat-cell a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.data-table a,
+a.list-row-title {
+  font-weight: 500;
+}
+
+.data-table a:hover,
+.data-table a:focus-visible,
+a.list-row-title:hover,
+a.list-row-title:focus-visible,
+.breadcrumb a:hover,
+.breadcrumb a:focus-visible,
+.heat-cell a:hover,
+.heat-cell a:focus-visible {
   color: var(--color-primary);
+  text-decoration: underline;
 }
 
 /* UXR-4: the identifying column stays visible while scrolling horizontally. */
@@ -2086,4 +2109,29 @@ a.brand:hover {
 /* A checkbox in a bottom-aligned toolbar sits on the same line as the inputs. */
 .toolbar > .check-field {
   min-height: 36px;
+}
+
+/* Links drawn as buttons, cards, rows or navigation never underline. */
+a.btn:hover,
+a.stat:hover,
+a.severity-tile:hover,
+a.list-row:hover,
+a.nav-item:hover,
+a.brand:hover,
+a.skip-link:focus-visible,
+a.btn:focus-visible,
+a.stat:focus-visible,
+a.severity-tile:focus-visible,
+a.list-row:focus-visible,
+a.nav-item:focus-visible {
+  text-decoration: none;
+}
+
+a.list-row:hover .list-row-title {
+  color: var(--color-primary);
+}
+
+.data-table a.cell-sub {
+  color: var(--color-text-muted);
+  font-weight: 400;
 }

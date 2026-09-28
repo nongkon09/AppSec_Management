@@ -9,12 +9,13 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { DragEvent, FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, ErrorSummary, FormField, SelectBox, TextInput } from '../../components/ui'
 import { apiErrorMessage } from '../../lib/ui-helpers'
 import { formatDateTime } from '../../lib/format'
-import { IconOverdue, IconRefresh, IconUpload, IconWithinSla } from '../../lib/icons'
+import { IconOverdue, IconPackage, IconRefresh, IconUpload, IconWithinSla } from '../../lib/icons'
+import { cx } from '../../lib/ui-helpers'
 import { listApplications, listAppVersions } from '../inventory/api'
 import {
   fetchIngestionHistory,
@@ -33,9 +34,11 @@ export function SbomIngestionPage() {
         <p className="page-sub">{t('sbom.intro')}</p>
       </div>
 
+      <div className="task-grid">
+        <SyncSection />
+        <StaleCheckSection />
+      </div>
       <ManualUploadSection />
-      <SyncSection />
-      <StaleCheckSection />
       <IngestionHistorySection />
     </div>
   )
@@ -80,7 +83,7 @@ function ManualUploadSection() {
   const message = validationError ?? (mutation.isError ? apiErrorMessage(mutation.error, t('sbom.uploadFailed')) : null)
 
   return (
-    <section aria-labelledby="manual-upload-heading" className="card card-pad">
+    <section aria-labelledby="manual-upload-heading" className="card card-pad upload-card">
       <h2 id="manual-upload-heading" className="section-title">
         {t('sbom.manualUploadSection')}
       </h2>
@@ -101,14 +104,8 @@ function ManualUploadSection() {
           <FormField label={t('sbom.versionLabel')}>
             <TextInput placeholder="1.0.0" value={versionLabel} onChange={(event) => setVersionLabel(event.target.value)} />
           </FormField>
-          <FormField label={t('sbom.file')} className="field-wide">
-            <TextInput
-              type="file"
-              accept="application/json,.json"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            />
-          </FormField>
         </div>
+        <FileDrop file={file} onChange={setFile} />
 
         <div className="form-actions">
           <Button type="submit" variant="primary" disabled={mutation.isPending}>
@@ -142,64 +139,46 @@ function SyncSection() {
     },
   })
 
+  const result = mutation.data
   return (
-    <section aria-labelledby="sync-heading" className="card card-pad">
-      <h2 id="sync-heading" className="section-title">
-        {t('sbom.syncSection')}
-      </h2>
-      <p className="field-hint">{t('sbom.syncHint')}</p>
-
-      <div className="form-actions">
-        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-          <IconRefresh />
-          {mutation.isPending ? t('common.saving') : t('sbom.syncNow')}
-        </Button>
+    <section aria-labelledby="sync-heading" className="card task-card">
+      <span className="task-icon" aria-hidden="true">
+        <IconRefresh />
+      </span>
+      <div className="task-text">
+        <h2 id="sync-heading" className="task-title">
+          {t('sbom.syncSection')}
+        </h2>
+        <p className="task-hint">{t('sbom.syncHint')}</p>
+        {mutation.isError && (
+          <p className="form-error" role="alert">
+            {t('sbom.syncFailed')}
+          </p>
+        )}
+        {result && (
+          <p className="task-result" role="status">
+            <IconWithinSla />
+            {t('sbom.syncSummary', {
+              projects: result.projects_seen,
+              components: result.components_upserted,
+              created: result.findings_created,
+              closed: result.findings_auto_closed,
+            })}
+            {result.applications_auto_created > 0 &&
+              ` · ${t('sbom.syncNewApps', { count: result.applications_auto_created })}`}
+          </p>
+        )}
+        {result && result.errors.length > 0 && (
+          <ul className="task-errors" role="alert">
+            {result.errors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        )}
       </div>
-
-      {mutation.isError && (
-        <p className="form-error" role="alert">
-          {t('sbom.syncFailed')}
-        </p>
-      )}
-
-      {mutation.isSuccess && (
-        <dl className="detail-grid sync-result" role="status">
-          <div>
-            <dt>{t('sbom.projectsSeen')}</dt>
-            <dd className="mono">{mutation.data.projects_seen}</dd>
-          </div>
-          <div>
-            <dt>{t('sbom.appsAutoCreated')}</dt>
-            <dd className="mono">{mutation.data.applications_auto_created}</dd>
-          </div>
-          <div>
-            <dt>{t('sbom.componentsUpserted')}</dt>
-            <dd className="mono">{mutation.data.components_upserted}</dd>
-          </div>
-          <div>
-            <dt>{t('sbom.findingsCreated')}</dt>
-            <dd className="mono">{mutation.data.findings_created}</dd>
-          </div>
-          <div>
-            <dt>{t('sbom.findingsAutoClosed')}</dt>
-            <dd className="mono">{mutation.data.findings_auto_closed}</dd>
-          </div>
-          {mutation.data.errors.length > 0 && (
-            <div>
-              <dt>{t('sbom.syncErrors')}</dt>
-              <dd>
-                <ul>
-                  {mutation.data.errors.map((error) => (
-                    <li key={error} className="form-error">
-                      {error}
-                    </li>
-                  ))}
-                </ul>
-              </dd>
-            </div>
-          )}
-        </dl>
-      )}
+      <Button small onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+        {mutation.isPending ? t('sbom.syncing') : t('sbom.syncNow')}
+      </Button>
     </section>
   )
 }
@@ -216,27 +195,28 @@ function StaleCheckSection() {
   })
 
   return (
-    <section aria-labelledby="stale-heading" className="card card-pad">
-      <h2 id="stale-heading" className="section-title">
-        {t('sbom.staleSection')}
-      </h2>
-      <p className="field-hint">{t('sbom.staleHint')}</p>
-
-      <div className="form-actions">
-        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-          {mutation.isPending ? t('common.saving') : t('sbom.runStaleCheck')}
-        </Button>
+    <section aria-labelledby="stale-heading" className="card task-card">
+      <span className="task-icon" aria-hidden="true">
+        <IconPackage />
+      </span>
+      <div className="task-text">
+        <h2 id="stale-heading" className="task-title">
+          {t('sbom.staleSection')}
+        </h2>
+        <p className="task-hint">{t('sbom.staleHint')}</p>
+        {mutation.isSuccess && (
+          <p className="task-result" role="status">
+            {mutation.data.newly_flagged_version_ids.length > 0 ? <IconOverdue /> : <IconWithinSla />}
+            {t('sbom.staleResult', {
+              newlyFlagged: mutation.data.newly_flagged_version_ids.length,
+              total: mutation.data.total_stale_versions,
+            })}
+          </p>
+        )}
       </div>
-
-      {mutation.isSuccess && (
-        <p role="status" className="inline sync-result">
-          {mutation.data.newly_flagged_version_ids.length > 0 ? <IconOverdue /> : <IconWithinSla />}
-          {t('sbom.staleResult', {
-            newlyFlagged: mutation.data.newly_flagged_version_ids.length,
-            total: mutation.data.total_stale_versions,
-          })}
-        </p>
-      )}
+      <Button small onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+        {mutation.isPending ? t('common.loading') : t('sbom.runStaleCheck')}
+      </Button>
     </section>
   )
 }
@@ -325,5 +305,76 @@ function IngestionHistorySection() {
         </div>
       )}
     </section>
+  )
+}
+
+const MAX_BYTES_LABEL = 1024 * 1024
+
+function formatSize(bytes: number): string {
+  return bytes >= MAX_BYTES_LABEL ? `${(bytes / MAX_BYTES_LABEL).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`
+}
+
+/**
+ * Drop zone replacing the browser's file input: the native control renders a long,
+ * unstyled "Choose file / No file chosen" bar that cannot be themed. The real input stays
+ * in the DOM (visually hidden) so keyboard and screen-reader users get the native picker.
+ */
+function FileDrop({ file, onChange }: { file: File | null; onChange: (file: File | null) => void }) {
+  const { t } = useTranslation()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [dragging, setDragging] = useState(false)
+
+  function handleDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault()
+    setDragging(false)
+    const dropped = event.dataTransfer.files?.[0]
+    if (dropped) onChange(dropped)
+  }
+
+  function clear() {
+    onChange(null)
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
+  if (file) {
+    return (
+      <div className="file-chip">
+        <span className="file-chip-icon" aria-hidden="true">
+          <IconPackage />
+        </span>
+        <span className="file-chip-text">
+          <span className="file-chip-name">{file.name}</span>
+          <span className="file-chip-size">{formatSize(file.size)}</span>
+        </span>
+        <Button small variant="ghost" onClick={clear}>
+          {t('sbom.removeFile')}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <label
+      className={cx('dropzone', dragging && 'dragging')}
+      onDragOver={(event) => {
+        event.preventDefault()
+        setDragging(true)
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        className="visually-hidden"
+        accept="application/json,.json"
+        onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+      />
+      <IconUpload />
+      <span>
+        {t('sbom.dropPrompt')} <span className="dropzone-link">{t('sbom.browse')}</span>
+      </span>
+      <span className="dropzone-hint">{t('sbom.fileFormats')}</span>
+    </label>
   )
 }

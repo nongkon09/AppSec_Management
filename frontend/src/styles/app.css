@@ -2135,3 +2135,45 @@ a.list-row:hover .list-row-title {
   color: var(--color-text-muted);
   font-weight: 400;
 }
+
+/* --- Remediation plan editor --- */
+
+.plan-date-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.plan-date-row .input {
+  width: auto;
+  min-width: 170px;
+}
+
+.plan-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--sev-high-bg);
+  color: var(--sev-high-fg);
+  font-size: 13px;
+}
+
+.plan-warning svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.plan-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.plan-suggestion .btn {
+  color: var(--color-primary);
+}

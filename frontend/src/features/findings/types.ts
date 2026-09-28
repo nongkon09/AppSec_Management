@@ -2,6 +2,7 @@ export type SeverityTier = 'critical' | 'high' | 'medium' | 'low'
 export type FindingSource = 'sbom' | 'sast' | 'pentest'
 export type FindingStatus = 'open' | 'fixed' | 'risk_accepted' | 'suppressed'
 export type VexStatus = 'affected' | 'not_affected' | 'fixed' | 'under_investigation'
+export type RemediationAction = 'upgrade' | 'patch' | 'config' | 'remove' | 'mitigate'
 export type SlaStatusFilter = 'overdue' | 'within_sla'
 
 export interface Finding {
@@ -32,6 +33,9 @@ export interface Finding {
   fixed_version: string | null
   reference_url: string | null
   remediation_plan: string | null
+  remediation_action: RemediationAction | null
+  /** When the team plans to have it fixed; may run past due_date (the UI warns). */
+  remediation_target_date: string | null
   remediation_plan_updated_by: string | null
   remediation_plan_updated_at: string | null
   first_detected_at: string

@@ -193,6 +193,11 @@ class Finding(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     # FR-10.2: Dev Team fills in / updates their remediation plan.
     remediation_plan: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # How the team intends to fix it (upgrade, patch, config, remove, mitigate) and by
+    # when. The date may run past due_date: the UI warns and points to an exception
+    # instead of refusing, because a realistic late plan beats an unrealistic on-time one.
+    remediation_action: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    remediation_target_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     remediation_plan_updated_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
     remediation_plan_updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

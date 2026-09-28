@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -37,10 +38,25 @@ class FindingCreate(BaseModel):
         return self
 
 
-class FindingUpdate(BaseModel):
-    """FR-10.2: the Dev Team's remediation plan is the one field they own on a Finding."""
+RemediationAction = Literal["upgrade", "patch", "config", "remove", "mitigate"]
 
-    remediation_plan: str = Field(min_length=1, max_length=10_000)
+
+class FindingUpdate(BaseModel):
+    """FR-10.2: the Dev Team's remediation plan is the one part of a Finding they own:
+    how they will fix it, by when, and any detail. At least one of the action or the
+    written plan is required, so a saved plan always says something."""
+
+    remediation_plan: str | None = Field(default=None, max_length=10_000)
+    remediation_action: RemediationAction | None = None
+    remediation_target_date: date | None = None
+
+    @model_validator(mode="after")
+    def _require_content(self) -> "FindingUpdate":
+        if self.remediation_plan is not None:
+            self.remediation_plan = self.remediation_plan.strip() or None
+        if not self.remediation_plan and not self.remediation_action:
+            raise ValueError("choose how it will be fixed or describe the plan")
+        return self
 
 
 class FindingOut(BaseModel):
@@ -68,6 +84,8 @@ class FindingOut(BaseModel):
     fixed_version: str | None
     reference_url: str | None
     remediation_plan: str | None
+    remediation_action: RemediationAction | None
+    remediation_target_date: date | None
     remediation_plan_updated_by: str | None
     remediation_plan_updated_at: datetime | None
     first_detected_at: datetime

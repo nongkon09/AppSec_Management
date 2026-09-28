@@ -17,10 +17,21 @@ import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { SeverityBadge, SlaBadge } from '../../components/SeverityBadge'
-import { Button, DisclosureRow, ErrorSummary, FormField, InfoTip, Modal, SelectBox, TextArea } from '../../components/ui'
+import {
+  Button,
+  DisclosureRow,
+  ErrorSummary,
+  FormField,
+  InfoTip,
+  Modal,
+  PillGroup,
+  SelectBox,
+  TextArea,
+  TextInput,
+} from '../../components/ui'
 import { apiErrorMessage } from '../../lib/ui-helpers'
 import { formatDate, formatDateTime } from '../../lib/format'
-import { IconChevronRight, IconExternal, IconPlus } from '../../lib/icons'
+import { IconAlertCircle, IconChevronRight, IconExternal, IconPlus } from '../../lib/icons'
 import { can } from '../../lib/rbac'
 import { useAuth } from '../auth/context'
 import { listConnectors } from '../settings/integrationApi'
@@ -29,7 +40,8 @@ import { ExceptionStatusBadge } from '../exceptions/ExceptionBadges'
 import { RequestExceptionForm } from '../exceptions/RequestExceptionForm'
 import { createFindingTicket, fetchFinding, listFindingTickets, updateRemediationPlan } from './api'
 import { findingLabel, SEVERITY_LABEL } from './labels'
-import type { Finding } from './types'
+import type { Finding, RemediationAction } from './types'
+
 const MAX_PLAN_LENGTH = 10_000
 
 export function FindingDetailPage() {
@@ -131,9 +143,9 @@ export function FindingDetailPage() {
           // Keyed on the Finding, so moving to another Finding gives a fresh editor while
           // saving this one does not remount it (which would wipe the draft and the
           // success confirmation).
-          <RemediationPlanForm key={finding.id} findingId={finding.id} initialPlan={finding.remediation_plan ?? ''} />
+          <RemediationPlanForm key={finding.id} finding={finding} />
         ) : (
-          <p>{finding.remediation_plan ?? <span className="muted">{t('findings.noPlan')}</span>}</p>
+          <RemediationPlanSummary finding={finding} />
         )}
       </section>
 
@@ -532,66 +544,236 @@ function CreateTicketForm({
   )
 }
 
+const ACTIONS: RemediationAction[] = ['upgrade', 'patch', 'config', 'remove', 'mitigate']
+
+/** Local calendar date as YYYY-MM-DD, the format of <input type="date">. */
+function isoDate(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+function addDays(days: number): string {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return isoDate(date)
+}
+
+/** Whole days from `from` to `to` (both YYYY-MM-DD); positive when `to` is later. */
+function daysBetween(from: string, to: string): number {
+  const [a, b] = [from, to].map((value) => {
+    const [year, month, day] = value.split('-').map(Number)
+    return Date.UTC(year, month - 1, day)
+  })
+  return Math.round((b - a) / 86_400_000)
+}
+
 /**
- * Remediation plan editor (FR-10.2, UXR-7).
- *
- * Owns only its draft text. The parent remounts it when the Finding changes, so server
- * state stays the single source of truth without an effect copying it down.
+ * Where the target date sits against the SLA: a hint while it is on time, a warning that
+ * points to an exception once it runs past the due date. Saving is still allowed; a
+ * realistic late plan is more useful than a made-up on-time one.
  */
-function RemediationPlanForm({ findingId, initialPlan }: { findingId: string; initialPlan: string }) {
+function SlaNote({ dueDate, targetDate }: { dueDate: string | null; targetDate: string }) {
+  const { t } = useTranslation()
+  if (!dueDate) return <p className="field-hint">{t('findings.planNoSla')}</p>
+  const late = targetDate ? daysBetween(dueDate, targetDate) : 0
+  if (late > 0) {
+    return (
+      <p className="plan-warning" role="status">
+        <IconAlertCircle />
+        {t('findings.planLate', { count: late, due: formatDate(dueDate) })}
+      </p>
+    )
+  }
+  const left = daysBetween(isoDate(new Date()), dueDate)
+  return (
+    <p className="field-hint">
+      {left >= 0
+        ? t('findings.planDueHint', { due: formatDate(dueDate), count: left })
+        : t('findings.planOverdueHint', { due: formatDate(dueDate) })}
+    </p>
+  )
+}
+
+function RemediationPlanSummary({ finding }: { finding: Finding }) {
+  const { t } = useTranslation()
+  if (!finding.remediation_action && !finding.remediation_plan) {
+    return <p className="muted">{t('findings.noPlan')}</p>
+  }
+  return (
+    <div className="card card-pad stack">
+      <div className="inline">
+        {finding.remediation_action && (
+          <span className="chip chip-neutral">{t(`findings.action.${finding.remediation_action}`)}</span>
+        )}
+        {finding.remediation_target_date && (
+          <span className="detail-meta">
+            {t('findings.planTarget', { date: formatDate(finding.remediation_target_date) })}
+          </span>
+        )}
+      </div>
+      {finding.remediation_target_date && (
+        <SlaNote dueDate={finding.due_date} targetDate={finding.remediation_target_date} />
+      )}
+      {finding.remediation_plan && <p className="prewrap">{finding.remediation_plan}</p>}
+    </div>
+  )
+}
+
+/**
+ * Remediation plan editor (FR-10.2, UXR-7): pick how it will be fixed and by when, with
+ * one-click dates and a live check against the SLA due date; the written detail is
+ * optional.
+ *
+ * Owns only its draft. The parent remounts it when the Finding changes, so server state
+ * stays the single source of truth without an effect copying it down.
+ */
+function RemediationPlanForm({ finding }: { finding: Finding }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [plan, setPlan] = useState(initialPlan)
+  const [action, setAction] = useState<RemediationAction | ''>(finding.remediation_action ?? '')
+  const [targetDate, setTargetDate] = useState(finding.remediation_target_date ?? '')
+  const [plan, setPlan] = useState(finding.remediation_plan ?? '')
   const [validationError, setValidationError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const errorSummaryRef = useRef<HTMLDivElement>(null)
+  const today = isoDate(new Date())
 
   const mutation = useMutation({
-    mutationFn: (value: string) => updateRemediationPlan(findingId, value),
+    mutationFn: () =>
+      updateRemediationPlan(finding.id, {
+        remediation_action: action || null,
+        remediation_target_date: targetDate || null,
+        remediation_plan: plan.trim() || null,
+      }),
     onSuccess: (updated) => {
-      queryClient.setQueryData(['finding', findingId], updated)
+      queryClient.setQueryData(['finding', finding.id], updated)
       queryClient.invalidateQueries({ queryKey: ['findings'] })
       setSaved(true)
     },
   })
 
+  function touched() {
+    setValidationError(null)
+    setSaved(false)
+  }
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setSaved(false)
-    const trimmed = plan.trim()
-    if (trimmed.length === 0) {
+    if (!action && !plan.trim()) {
       setValidationError(t('findings.planRequired'))
       // UXR-7: move focus to the error summary so the failure is announced, not just shown.
       requestAnimationFrame(() => errorSummaryRef.current?.focus())
       return
     }
     setValidationError(null)
-    mutation.mutate(trimmed)
+    mutation.mutate()
   }
 
+  const quickDates = [
+    { label: t('findings.planIn1Week'), value: addDays(7) },
+    { label: t('findings.planIn2Weeks'), value: addDays(14) },
+    ...(finding.due_date && finding.due_date >= today
+      ? [{ label: t('findings.planBySla', { date: formatDate(finding.due_date) }), value: finding.due_date }]
+      : []),
+  ]
+  const upgradeText =
+    finding.fixed_version && finding.component_name
+      ? t('findings.fixUpgrade', {
+          component: finding.component_name,
+          from: finding.component_version ?? '?',
+          to: finding.fixed_version,
+        })
+      : null
+
   return (
-    <form className="stack" onSubmit={handleSubmit} noValidate>
+    <form className="card card-pad stack plan-form" onSubmit={handleSubmit} noValidate>
       {(validationError || mutation.isError) && (
         <ErrorSummary
           ref={errorSummaryRef}
           title={t('findings.planErrorSummary')}
-          message={<a href="#remediation-plan">{validationError ?? t('findings.planSaveFailed')}</a>}
+          message={validationError ?? apiErrorMessage(mutation.error, t('findings.planSaveFailed'))}
         />
       )}
-      <FormField label={t('findings.planLabel')} hint={t('findings.planHint')}>
+
+      <div className="field">
+        <span className="field-label">{t('findings.planAction')}</span>
+        <PillGroup
+          ariaLabel={t('findings.planAction')}
+          value={action}
+          onChange={(value) => {
+            setAction(value)
+            touched()
+          }}
+          options={ACTIONS.map((value) => ({ value, label: t(`findings.action.${value}`) }))}
+        />
+        {action === 'upgrade' && upgradeText && (
+          <p className="field-hint plan-suggestion">
+            {t('findings.planSuggested')} {upgradeText}
+            {!plan.includes(upgradeText) && (
+              <Button
+                small
+                variant="ghost"
+                onClick={() => {
+                  setPlan((current) => (current.trim() ? `${current.trim()}\n${upgradeText}` : upgradeText))
+                  touched()
+                }}
+              >
+                {t('findings.planUseSuggestion')}
+              </Button>
+            )}
+          </p>
+        )}
+      </div>
+
+      <div className="field">
+        <label className="field-label" htmlFor="plan-target-date">
+          {t('findings.planTargetDate')}
+        </label>
+        <div className="plan-date-row">
+          <TextInput
+            id="plan-target-date"
+            type="date"
+            min={today}
+            value={targetDate}
+            onChange={(event) => {
+              setTargetDate(event.target.value)
+              touched()
+            }}
+          />
+          {quickDates.map((option) => (
+            <button
+              key={option.label}
+              type="button"
+              className="pill"
+              aria-pressed={targetDate === option.value}
+              data-checked={targetDate === option.value ? '' : undefined}
+              onClick={() => {
+                setTargetDate(option.value)
+                touched()
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <SlaNote dueDate={finding.due_date} targetDate={targetDate} />
+      </div>
+
+      <FormField label={t('findings.planDetails')} hint={t('findings.planHint')}>
         <TextArea
           id="remediation-plan"
           value={plan}
-          rows={4}
+          rows={3}
           maxLength={MAX_PLAN_LENGTH}
-          invalid={Boolean(validationError)}
+          placeholder={t('findings.planPlaceholder')}
           onChange={(event) => {
             setPlan(event.target.value)
-            setValidationError(null)
-            setSaved(false)
+            touched()
           }}
         />
       </FormField>
+
       <div className="form-actions">
         {/* UXR-7: disabled while in flight, so a second click cannot duplicate the write. */}
         <Button type="submit" variant="primary" disabled={mutation.isPending}>

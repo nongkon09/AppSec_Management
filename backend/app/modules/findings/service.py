@@ -378,12 +378,24 @@ def create_finding(db: Session, payload: FindingCreate, actor: str) -> Finding:
     return finding
 
 
+def _plan_state(finding: Finding) -> dict[str, str | None]:
+    return {
+        "remediation_plan": finding.remediation_plan,
+        "remediation_action": finding.remediation_action,
+        "remediation_target_date": (
+            finding.remediation_target_date.isoformat() if finding.remediation_target_date else None
+        ),
+    }
+
+
 def update_remediation_plan(
     db: Session, finding: Finding, payload: FindingUpdate, actor: str
 ) -> Finding:
     """FR-10.2 + FR-11.1: record the plan with who changed it and the previous value."""
-    before = finding.remediation_plan
+    before = _plan_state(finding)
     finding.remediation_plan = payload.remediation_plan
+    finding.remediation_action = payload.remediation_action
+    finding.remediation_target_date = payload.remediation_target_date
     finding.remediation_plan_updated_by = actor
     finding.remediation_plan_updated_at = datetime.now(UTC)
     record_audit(
@@ -392,8 +404,8 @@ def update_remediation_plan(
         action="finding.update_remediation_plan",
         entity_type="finding",
         entity_id=finding.id,
-        before={"remediation_plan": before},
-        after={"remediation_plan": finding.remediation_plan},
+        before=before,
+        after=_plan_state(finding),
     )
     db.commit()
     db.refresh(finding)

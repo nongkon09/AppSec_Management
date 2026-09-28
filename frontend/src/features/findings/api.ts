@@ -5,6 +5,7 @@ import type {
   Finding,
   FindingFilters,
   PaginatedFindings,
+  RemediationAction,
 } from './types'
 
 export async function listFindings(filters: FindingFilters = {}): Promise<PaginatedFindings> {
@@ -29,13 +30,14 @@ export async function fetchFinding(findingId: string): Promise<Finding> {
   return data
 }
 
-export async function updateRemediationPlan(
-  findingId: string,
-  remediationPlan: string,
-): Promise<Finding> {
-  const { data } = await apiClient.patch<Finding>(`/findings/${findingId}`, {
-    remediation_plan: remediationPlan,
-  })
+export interface RemediationPlanInput {
+  remediation_plan: string | null
+  remediation_action: RemediationAction | null
+  remediation_target_date: string | null
+}
+
+export async function updateRemediationPlan(findingId: string, plan: RemediationPlanInput): Promise<Finding> {
+  const { data } = await apiClient.patch<Finding>(`/findings/${findingId}`, plan)
   return data
 }
 

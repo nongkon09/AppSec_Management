@@ -61,6 +61,8 @@ def _to_out(finding: Finding, today: date | None = None) -> FindingOut:
                 "fixed_version",
                 "reference_url",
                 "remediation_plan",
+                "remediation_action",
+                "remediation_target_date",
                 "remediation_plan_updated_by",
                 "remediation_plan_updated_at",
                 "first_detected_at",

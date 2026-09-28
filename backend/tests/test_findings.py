@@ -419,6 +419,38 @@ class TestRemediationPlan:
         assert body["remediation_plan_updated_by"] == "dev.alpha"
         assert body["remediation_plan_updated_at"] is not None
 
+    def test_plan_with_action_and_target_date(
+        self, client, make_user, auth_headers, make_application, make_version, make_finding
+    ):
+        """The plan can be just a chosen action and a date; the text is optional."""
+        finding = make_finding(make_version(make_application(owner_team="Team Alpha")))
+        make_user("dev.alpha", Role.DEV_TEAM, owner_team="Team Alpha")
+        resp = client.patch(
+            f"/api/v1/findings/{finding.id}",
+            headers=auth_headers("dev.alpha"),
+            json={"remediation_action": "upgrade", "remediation_target_date": "2026-10-15"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["remediation_action"] == "upgrade"
+        assert body["remediation_target_date"] == "2026-10-15"
+        assert body["remediation_plan"] is None
+
+    def test_empty_plan_is_rejected(
+        self, client, make_user, auth_headers, make_application, make_version, make_finding
+    ):
+        finding = make_finding(make_version(make_application(owner_team="Team Alpha")))
+        make_user("dev.alpha", Role.DEV_TEAM, owner_team="Team Alpha")
+        headers = auth_headers("dev.alpha")
+        for payload in (
+            {},
+            {"remediation_plan": ""},
+            {"remediation_plan": "   "},
+            {"remediation_action": "rewrite"},
+        ):
+            resp = client.patch(f"/api/v1/findings/{finding.id}", headers=headers, json=payload)
+            assert resp.status_code == 422, payload
+
     def test_other_dev_team_cannot_update_plan(
         self, client, make_user, auth_headers, make_application, make_version, make_finding
     ):
@@ -455,20 +487,8 @@ class TestRemediationPlan:
         assert logs["total"] == 2
         latest = logs["items"][0]
         assert latest["actor"] == "dev.alpha"
-        assert latest["before_value"] == {"remediation_plan": "v1"}
-        assert latest["after_value"] == {"remediation_plan": "v2"}
-
-    def test_empty_plan_is_rejected(
-        self, client, make_user, auth_headers, make_application, make_version, make_finding
-    ):
-        finding = make_finding(make_version(make_application()))
-        make_user("appsec.lead", Role.APPSEC)
-        resp = client.patch(
-            f"/api/v1/findings/{finding.id}",
-            headers=auth_headers("appsec.lead"),
-            json={"remediation_plan": ""},
-        )
-        assert resp.status_code == 422
+        assert latest["before_value"]["remediation_plan"] == "v1"
+        assert latest["after_value"]["remediation_plan"] == "v2"
 
 
 def test_findings_require_authentication(client):

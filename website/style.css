@@ -242,8 +242,9 @@ h1 {
   margin-top: 28px;
 }
 
-.hero-shot {
-  margin-top: 48px;
+/* Room between the call to action and the screenshot, so the buttons read as their own row. */
+.frame.hero-shot {
+  margin-top: clamp(56px, 8vw, 96px);
 }
 
 /* --- Screenshot frame --- */

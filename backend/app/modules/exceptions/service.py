@@ -181,8 +181,11 @@ def create_exception(
     errors = rules.residual_errors(original, payload.residual_severity_tier, kev, len(controls))
     policy = policy_service.get_effective_policy(db, today)
     anchor = min(f.sla_started_on for f in covered)
-    sla_due = policy_service.compute_due_date(
-        policy, payload.residual_severity_tier or original, anchor
+    tier = payload.residual_severity_tier or original
+    sla_due = rules.acceptance_deadline(
+        policy_service.compute_due_date(policy, tier, anchor),
+        today,
+        policy_service.sla_days_for_tier(policy, tier),
     )
     errors += rules.expiry_errors(payload.exception_type, payload.expires_on, today, sla_due)
     if errors:

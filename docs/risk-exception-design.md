@@ -179,6 +179,10 @@ control ชดเชย (จาก Control Library), Original Severity (ระ�
 - ช่องโหว่ KEV ลดต่ำกว่า High ไม่ได้
 - ถ้า Residual ต่ำกว่า Original ต้องเลือก control อย่างน้อย 1 รายการ
 - วันหมดอายุของ risk acceptance ต้องไม่เกินวันครบกำหนด SLA ตาม Residual Severity
+- ถ้าช่องโหว่**เกิน SLA ไปแล้ว** การขอยกเว้นเป็นทางเดียวที่จะคงไว้ได้ วันหมดอายุตั้งได้ไม่เกิน
+  **วันนี้ + ระยะ SLA 1 รอบของ Residual Severity** (เช่น residual High, SLA 30 วัน → ไม่เกิน 30 วันจากวันยื่น)
+  เมื่อหมดอายุ ช่องโหว่กลับเป็นเกินกำหนดตามวันเริ่มนับเดิม ไม่เริ่มนับใหม่
+  (`rules.acceptance_deadline`)
 
 ### 3.6 Control Library
 

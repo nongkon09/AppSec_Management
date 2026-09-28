@@ -569,12 +569,22 @@ function daysBetween(from: string, to: string): number {
 
 /**
  * Where the target date sits against the SLA: a hint while it is on time, a warning that
- * points to an exception once it runs past the due date. Saving is still allowed; a
+ * points to an exception once it runs past the due date, or once the issue is already
+ * overdue (then an exception is the only way to keep it open). Saving is still allowed; a
  * realistic late plan is more useful than a made-up on-time one.
  */
 function SlaNote({ dueDate, targetDate }: { dueDate: string | null; targetDate: string }) {
   const { t } = useTranslation()
   if (!dueDate) return <p className="field-hint">{t('findings.planNoSla')}</p>
+  // Past the SLA already: a plan alone is not enough, the issue needs an exception.
+  if (daysBetween(isoDate(new Date()), dueDate) < 0) {
+    return (
+      <p className="plan-warning" role="status">
+        <IconAlertCircle />
+        {t('findings.planOverdueHint', { due: formatDate(dueDate) })}
+      </p>
+    )
+  }
   const late = targetDate ? daysBetween(dueDate, targetDate) : 0
   if (late > 0) {
     return (
@@ -585,13 +595,7 @@ function SlaNote({ dueDate, targetDate }: { dueDate: string | null; targetDate: 
     )
   }
   const left = daysBetween(isoDate(new Date()), dueDate)
-  return (
-    <p className="field-hint">
-      {left >= 0
-        ? t('findings.planDueHint', { due: formatDate(dueDate), count: left })
-        : t('findings.planOverdueHint', { due: formatDate(dueDate) })}
-    </p>
-  )
+  return <p className="field-hint">{t('findings.planDueHint', { due: formatDate(dueDate), count: left })}</p>
 }
 
 function RemediationPlanSummary({ finding }: { finding: Finding }) {

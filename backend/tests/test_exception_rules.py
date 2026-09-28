@@ -116,6 +116,17 @@ class TestExpiry:
         assert rules.expiry_errors(RA, due, self.today, due) == []
         assert rules.expiry_errors(RA, due + timedelta(days=1), self.today, due)
 
+    def test_overdue_issue_gets_one_sla_period_from_today(self):
+        past_due = self.today - timedelta(days=57)
+        assert rules.acceptance_deadline(past_due, self.today, 30) == self.today + timedelta(
+            days=30
+        )
+
+    def test_on_time_issue_keeps_its_sla_due(self):
+        due = self.today + timedelta(days=5)
+        assert rules.acceptance_deadline(due, self.today, 30) == due
+        assert rules.acceptance_deadline(None, self.today, None) is None
+
     def test_best_effort_tier_has_no_cap(self):
         assert rules.expiry_errors(RA, self.today + timedelta(days=900), self.today, None) == []
 

@@ -5,7 +5,7 @@ an auditor in one place.
 """
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from app.models.finding import SeverityTier
 from app.models.risk_exception import ExceptionType
@@ -136,6 +136,15 @@ def is_fully_approved(
     )
 
 
+def acceptance_deadline(sla_due: date | None, today: date, sla_days: int | None) -> date | None:
+    """Latest end date for a risk acceptance. Normally the SLA due date; once that has
+    passed, an exception is the only way to keep the issue open, so the window restarts
+    from today for one SLA period of the (residual) tier."""
+    if sla_due is None or sla_due >= today or sla_days is None:
+        return sla_due
+    return today + timedelta(days=sla_days)
+
+
 def expiry_errors(
     exception_type: ExceptionType,
     expires_on: date,
@@ -147,7 +156,8 @@ def expiry_errors(
     if exception_type == ExceptionType.RISK_ACCEPTANCE:
         if sla_due is not None and expires_on > sla_due:
             return [
-                f"A risk acceptance must expire by the SLA due date ({sla_due.isoformat()}). "
+                f"A risk acceptance must expire by {sla_due.isoformat()} (the SLA due date, "
+                "or one SLA period from today when already overdue). "
                 "Propose a justified residual severity to get a longer window."
             ]
         return []

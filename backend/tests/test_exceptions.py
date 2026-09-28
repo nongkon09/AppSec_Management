@@ -215,6 +215,33 @@ class TestValidation:
         )
         assert resp.status_code == 422 and "SLA due date" in resp.json()["detail"]
 
+    def test_overdue_issue_can_still_be_accepted_for_one_sla_period(
+        self, client, auth_headers, people, log4j, control, db_session
+    ):
+        log4j.sla_started_on = TODAY - timedelta(days=90)  # long past the High SLA
+        db_session.commit()
+        policy = policy_service.get_effective_policy(db_session)
+        window = policy_service.sla_days_for_tier(policy, SeverityTier.HIGH)
+        assert window is not None
+        within = _risk_acceptance(
+            log4j, control["id"], expires_on=(TODAY + timedelta(days=window)).isoformat()
+        )
+        assert _submit(client, auth_headers, "dev.alpha", **within).status_code == 201
+
+    def test_overdue_issue_cannot_be_accepted_beyond_one_sla_period(
+        self, client, auth_headers, people, log4j, control, db_session
+    ):
+        log4j.sla_started_on = TODAY - timedelta(days=90)
+        db_session.commit()
+        policy = policy_service.get_effective_policy(db_session)
+        window = policy_service.sla_days_for_tier(policy, SeverityTier.HIGH)
+        assert window is not None
+        beyond = _risk_acceptance(
+            log4j, control["id"], expires_on=(TODAY + timedelta(days=window + 1)).isoformat()
+        )
+        resp = _submit(client, auth_headers, "dev.alpha", **beyond)
+        assert resp.status_code == 422 and "SLA due date" in resp.json()["detail"]
+
     def test_stale_control_cannot_be_cited(self, client, auth_headers, people, log4j, control):
         client.patch(
             f"/api/v1/controls/{control['id']}",

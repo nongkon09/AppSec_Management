@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Button, FormField, TextInput } from '../../components/ui'
-import { IconLock } from '../../lib/icons'
+import { IconShieldCheck } from '../../lib/icons'
 import { useAuth } from './context'
 
 export function LoginPage() {
@@ -34,7 +34,7 @@ export function LoginPage() {
       <form className="auth-card" onSubmit={handleSubmit}>
         <div className="auth-brand">
           <span className="brand-mark">
-            <IconLock />
+            <IconShieldCheck />
           </span>
           {t('appName')}
         </div>

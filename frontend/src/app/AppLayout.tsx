@@ -23,7 +23,7 @@ import {
   IconInventory,
   IconLanguage,
   IconLayers,
-  IconLock,
+  IconShieldCheck,
   IconLogout,
   IconMoon,
   IconPackage,
@@ -106,7 +106,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <header className="topbar">
         <Link to="/" className="brand">
           <span className="brand-mark">
-            <IconLock />
+            <IconShieldCheck />
           </span>
           {t('appName')}
         </Link>

@@ -23,7 +23,6 @@ import {
   IconInventory,
   IconLanguage,
   IconLayers,
-  IconShieldCheck,
   IconLogout,
   IconMoon,
   IconPackage,
@@ -37,6 +36,7 @@ import {
 import { can, isScopedToOwnTeam } from '../lib/rbac'
 import type { Capability } from '../lib/rbac'
 import { useTheme } from '../lib/theme'
+import { BrandMark } from '../components/BrandMark'
 
 interface NavItem {
   to: string
@@ -105,9 +105,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <header className="topbar">
         <Link to="/" className="brand">
-          <span className="brand-mark">
-            <IconShieldCheck />
-          </span>
+          <BrandMark className="brand-mark" />
           {t('appName')}
         </Link>
 

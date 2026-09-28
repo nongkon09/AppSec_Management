@@ -4,7 +4,7 @@ import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button, FormField, TextInput } from '../../components/ui'
-import { IconShieldCheck } from '../../lib/icons'
+import { BrandMark } from '../../components/BrandMark'
 import { buttonClass } from '../../lib/ui-helpers'
 import { fetchSsoConfig, ssoLoginUrl } from './api'
 import { useAuth } from './context'
@@ -24,9 +24,7 @@ export function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="brand-mark">
-            <IconShieldCheck />
-          </span>
+          <BrandMark className="brand-mark" />
           {t('appName')}
         </div>
         <h1>{t('login.title')}</h1>

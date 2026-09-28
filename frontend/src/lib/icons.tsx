@@ -356,16 +356,6 @@ export function IconExternal(props: IconProps) {
   )
 }
 
-/** The product mark: a shield with a check, shared with the favicon (public/favicon.svg). */
-export function IconShieldCheck(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M12 3.5 18.5 6v5.2c0 4.2-2.7 7.7-6.5 9.1-3.8-1.4-6.5-4.9-6.5-9.1V6Z" />
-      <path d="m9 11.8 2.2 2.2 4.1-4.3" />
-    </Icon>
-  )
-}
-
 export function IconTeam(props: IconProps) {
   return (
     <Icon {...props}>

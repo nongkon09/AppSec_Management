@@ -118,18 +118,7 @@
 .brand-mark {
   width: 26px;
   height: 26px;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-}
-
-.brand-mark svg {
-  width: 15px;
-  height: 15px;
 }
 
 .topbar-right {

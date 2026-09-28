@@ -3,6 +3,7 @@ name = "appsec-management-backend"
 version = "0.3.0"
 description = "AppSec Management Platform - Central API (FastAPI)"
 requires-python = ">=3.12"
+license = "Apache-2.0"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",

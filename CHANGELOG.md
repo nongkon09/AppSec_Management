@@ -8,6 +8,9 @@ versions may still include breaking changes.
 
 ### Added
 
+- Released as open source under the Apache-2.0 license, with a project website
+  (`website/`, published to GitHub Pages by `.github/workflows/pages.yml`).
+
 - **Microsoft Entra ID**: sign in with Microsoft (OIDC authorization code flow
   with PKCE; the backend verifies the ID token against the tenant keys, audience,
   issuer, tenant, state and nonce), SCIM 2.0 provisioning of users and groups,

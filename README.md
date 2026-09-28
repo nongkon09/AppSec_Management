@@ -4,6 +4,9 @@ Application Security Management Platform for centralized inventory, SBOM-based
 vulnerability monitoring, severity policy, and reporting. See
 [Requirement.md](Requirement.md) for the full BRD/FRS.
 
+**Website and screenshots:** https://nongkon09.github.io/AppSec_Management/ ·
+Licensed under [Apache-2.0](LICENSE).
+
 ## Architecture
 
 - **Backend**: Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL — modular
@@ -218,6 +221,7 @@ deploy/production/     Production pack: compose (app + Dependency-Track), instal
                        DT bootstrap, backup and offline-bundle scripts
 docs/                  Deployment guide, workflows, risk-exception design,
                        Entra ID setup (Thai)
+website/               Project landing page (GitHub Pages, .github/workflows/pages.yml)
 docker-compose.dev.yml Local development stack (bind-mounted source, hot reload)
 Requirement.md         Authoritative BRD/FRS specification
 ```

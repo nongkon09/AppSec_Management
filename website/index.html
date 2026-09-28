@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AppSec Management Platform</title>
+    <meta
+      name="description"
+      content="Open-source application security management: SBOM inventory from Dependency-Track, SLA per issue, maker–checker risk exceptions, audit evidence and Microsoft Entra ID sign-in."
+    />
+    <meta property="og:title" content="AppSec Management Platform" />
+    <meta
+      property="og:description"
+      content="Know every application's security risk, who is fixing it and by when. Open source, self-hosted, Apache-2.0."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="screenshots/dashboard-en.webp" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="nav">
+      <div class="wrap nav-inner">
+        <a class="brand" href="#top">
+          <img src="favicon.svg" alt="" width="28" height="28" />
+          <span>AppSec Management Platform</span>
+        </a>
+        <nav class="nav-links" aria-label="Sections">
+          <a href="#features" data-i18n="nav.features">Features</a>
+          <a href="#screenshots" data-i18n="nav.screenshots">Screenshots</a>
+          <a href="#quick-start" data-i18n="nav.start">Quick start</a>
+          <a href="https://github.com/nongkon09/AppSec_Management/tree/main/docs" data-i18n="nav.docs">Docs</a>
+        </nav>
+        <div class="nav-actions">
+          <button type="button" class="lang" id="lang-toggle" aria-label="Switch language">ไทย</button>
+          <a class="btn btn-dark btn-sm" href="https://github.com/nongkon09/AppSec_Management">
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero wrap">
+        <p class="eyebrow" data-i18n="hero.eyebrow">Open source · Self-hosted · Apache-2.0</p>
+        <h1 data-i18n="hero.title">Know every application's security risk, who is fixing it, and by when.</h1>
+        <p class="lead" data-i18n="hero.lead">
+          One place for your application inventory, open-source vulnerabilities from SBOMs, SLA tracking, risk
+          exceptions with maker–checker approval, and the evidence your auditors ask for.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#quick-start" data-i18n="hero.start">Get started</a>
+          <a class="btn btn-ghost" href="https://github.com/nongkon09/AppSec_Management" data-i18n="hero.github">View on GitHub</a>
+        </div>
+        <figure class="frame hero-shot">
+          <div class="frame-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+          <img data-shot="dashboard" src="screenshots/dashboard-en.webp" width="1440" height="900" alt="Overview dashboard: open, overdue and fixed-on-time figures, severity breakdown and the vulnerabilities to handle first" />
+        </figure>
+      </section>
+
+      <section class="band">
+        <div class="wrap stats">
+          <div><strong>SBOM</strong><span data-i18n="stats.sbom">CycloneDX & SPDX, Dependency-Track sync</span></div>
+          <div><strong>KEV · EPSS</strong><span data-i18n="stats.intel">Exploitation signals on every finding</span></div>
+          <div><strong>L1–L3</strong><span data-i18n="stats.approvals">Maker–checker approval levels</span></div>
+          <div><strong>TH / EN</strong><span data-i18n="stats.lang">Thai and English interface</span></div>
+        </div>
+      </section>
+
+      <section id="features" class="wrap section">
+        <h2 data-i18n="features.title">What it does</h2>
+        <p class="section-lead" data-i18n="features.lead">Built for AppSec teams, developers, managers and auditors. Each role sees only what it needs.</p>
+        <div class="features">
+          <article>
+            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4 7l8 4 8-4-8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg></div>
+            <h3 data-i18n="f.sbom.t">SBOM inventory</h3>
+            <p data-i18n="f.sbom.d">Pulls projects, components and findings from OWASP Dependency-Track, enriched with CISA KEV, FIRST EPSS and OSV aliases. Vendor SBOMs can be uploaded by hand.</p>
+          </article>
+          <article>
+            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></div>
+            <h3 data-i18n="f.sla.t">SLA per issue, not per build</h3>
+            <p data-i18n="f.sla.d">The clock starts when a vulnerability first appears in an application and keeps running across releases, so a new build never buys extra time.</p>
+          </article>
+          <article>
+            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg></div>
+            <h3 data-i18n="f.exc.t">Risk exceptions, maker–checker</h3>
+            <p data-i18n="f.exc.d">Risk acceptance, false positive and not-affected requests with reference numbers, approval by severity (L1–L3), residual severity backed by a control library, and expiry.</p>
+          </article>
+          <article>
+            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 15l2 2 4-4"/></svg></div>
+            <h3 data-i18n="f.evidence.t">Audit-ready evidence</h3>
+            <p data-i18n="f.evidence.d">Which version ran where and when, the scan and SBOM hash behind it, who approved each exception, and every bypass at the upstream tool, exported in one pack.</p>
+          </article>
+          <article>
+            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.5 3 8 7 9 4-1 7-4.5 7-9V6z"/></svg></div>
+            <h3 data-i18n="f.policy.t">Versioned severity & SLA policy</h3>
+            <p data-i18n="f.policy.d">CVSS, EPSS and KEV rules decide the tier. Policy versions are effective-dated and never edited, so every past decision can be reproduced.</p>
+          </article>
+          <article>
+            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M10 17v-3M13 17v-6M16 17v-4"/></svg></div>
+            <h3 data-i18n="f.report.t">Executive monthly report</h3>
+            <p data-i18n="f.report.d">Open, found, fixed, on-time rate, top risks and exceptions for any month, per organisation or team. Print or save as PDF.</p>
+          </article>
+          <article>
+            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/></svg></div>
+            <h3 data-i18n="f.entra.t">Microsoft Entra ID</h3>
+            <p data-i18n="f.entra.d">Sign in with Microsoft (OIDC + PKCE), SCIM provisioning, and roles from Entra groups or app roles. A local break-glass admin stays available.</p>
+          </article>
+          <article>
+            <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></div>
+            <h3 data-i18n="f.more.t">Pentest, ITSM and more</h3>
+            <p data-i18n="f.more.d">Pentest projects and cost reporting, Jira ticket routing by severity, a go-live checklist, an append-only audit trail, light and dark themes.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="screenshots" class="section section-muted">
+        <div class="wrap">
+          <h2 data-i18n="shots.title">A look inside</h2>
+          <p class="section-lead" data-i18n="shots.lead">Real screens from the demo data. Switch the page language to see the Thai interface.</p>
+          <div class="tabs" role="tablist" aria-label="Screenshots" id="shot-tabs"></div>
+          <figure class="frame">
+            <div class="frame-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+            <img id="shot-image" src="screenshots/findings-en.webp" width="1440" height="900" alt="" />
+          </figure>
+          <p class="shot-caption" id="shot-caption" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="wrap section">
+        <h2 data-i18n="flow.title">How it fits your pipeline</h2>
+        <ol class="flow">
+          <li><span class="step">1</span><strong data-i18n="flow.1t">CI builds and scans</strong><p data-i18n="flow.1d">Your pipeline sends the SBOM to Dependency-Track and records the deployment.</p></li>
+          <li><span class="step">2</span><strong data-i18n="flow.2t">The platform syncs</strong><p data-i18n="flow.2d">Findings are tiered by policy, grouped per issue and given an SLA.</p></li>
+          <li><span class="step">3</span><strong data-i18n="flow.3t">Teams act</strong><p data-i18n="flow.3d">Developers plan the fix or request an exception; AppSec and management approve.</p></li>
+          <li><span class="step">4</span><strong data-i18n="flow.4t">Everyone can prove it</strong><p data-i18n="flow.4d">Reports for leadership, evidence packs for auditors, all from the same data.</p></li>
+        </ol>
+      </section>
+
+      <section id="quick-start" class="section section-muted">
+        <div class="wrap two-col">
+          <div>
+            <h2 data-i18n="start.title">Quick start</h2>
+            <p data-i18n="start.lead">Needs Docker. The dev stack includes Dependency-Track and demo data.</p>
+            <ul class="checks">
+              <li data-i18n="start.c1">Open http://localhost:5173 and sign in as appsec.lead / ChangeMe123!</li>
+              <li data-i18n="start.c2">Production: one script installs the platform and Dependency-Track, generating every secret.</li>
+              <li data-i18n="start.c3">Air-gapped servers: build an offline bundle with all images.</li>
+            </ul>
+            <a class="btn btn-ghost" href="https://github.com/nongkon09/AppSec_Management/blob/main/docs/deployment-guide.md" data-i18n="start.guide">Deployment guide (Thai)</a>
+          </div>
+          <div class="code">
+            <div class="code-head"><span data-i18n="start.dev">Local development</span><button type="button" class="copy" data-copy="dev" data-i18n="copy">Copy</button></div>
+<pre id="code-dev"><code>git clone https://github.com/nongkon09/AppSec_Management.git
+cd AppSec_Management
+docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml exec backend \
+  python -m app.seed --demo</code></pre>
+            <div class="code-head"><span data-i18n="start.prod">Production (one host)</span><button type="button" class="copy" data-copy="prod" data-i18n="copy">Copy</button></div>
+<pre id="code-prod"><code>cd deploy/production
+./scripts/install.sh --host appsec.example.org</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap section">
+        <h2 data-i18n="stack.title">Built with</h2>
+        <ul class="stack">
+          <li>FastAPI · Python 3.12</li>
+          <li>PostgreSQL · SQLAlchemy · Alembic</li>
+          <li>React 19 · TypeScript · Vite</li>
+          <li>Headless UI · React Query</li>
+          <li>OWASP Dependency-Track</li>
+          <li>Docker Compose</li>
+        </ul>
+      </section>
+
+      <section class="wrap cta">
+        <h2 data-i18n="cta.title">Free to use, change and self-host</h2>
+        <p data-i18n="cta.lead">Licensed under Apache-2.0. Issues and pull requests are welcome.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="https://github.com/nongkon09/AppSec_Management" data-i18n="cta.star">Star on GitHub</a>
+          <a class="btn btn-ghost" href="https://github.com/nongkon09/AppSec_Management/issues" data-i18n="cta.issue">Report an issue</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <span>AppSec Management Platform · Apache-2.0</span>
+        <nav aria-label="Footer">
+          <a href="https://github.com/nongkon09/AppSec_Management">GitHub</a>
+          <a href="https://github.com/nongkon09/AppSec_Management/blob/main/docs/workflows.md" data-i18n="footer.workflows">Workflows</a>
+          <a href="https://github.com/nongkon09/AppSec_Management/blob/main/docs/entra-id.md">Entra ID</a>
+          <a href="https://github.com/nongkon09/AppSec_Management/blob/main/CHANGELOG.md" data-i18n="footer.changelog">Changelog</a>
+          <a href="https://github.com/nongkon09/AppSec_Management/blob/main/LICENSE" data-i18n="footer.license">License</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script src="main.js"></script>
+  </body>
+</html>
